@@ -1,0 +1,17 @@
+luarocks
+lua
+lua_modules
+.luarocks
+lib
+obj
+obj-dll
+test-*
+*-test
+*.o
+*.a
+*.so
+*.dll
+*.run
+*.exe
+html
+*.html

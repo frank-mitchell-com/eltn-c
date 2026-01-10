@@ -1,0 +1,28 @@
+/* The "style guide* for this project.*/
+--blank-lines-after-declarations
+--blank-lines-after-procedures
+--braces-on-if-line
+--braces-on-func-def-line
+--braces-on-struct-decl-line
+--break-after-boolean-operator
+--comment-delimiters-on-blank-lines
+--continue-at-parentheses
+--cuddle-do-while
+--cuddle-else
+--dont-break-procedure-type
+--dont-left-justify-declarations
+--dont-format-first-column-comments
+--honour-newlines
+--indent-level4
+--line-length80
+--no-space-after-casts                  /* Doesn't seem to work ... */
+--no-space-after-function-call-names
+--no-space-after-parentheses
+--no-tabs
+--pointer-align-left
+--remove-preprocessor-space
+--space-after-for
+--space-after-if
+--space-after-while
+--tab-size4
+
