@@ -23,19 +23,64 @@
  ****************************************************************************/
 
 #include <stdlib.h>
+#include <string.h>
 #include "convert.h"
 #include "ealloc.h"
 #include "estring.h"
 
 
-char ELTN_to_byte(const char* instr) {
-    long result;
+static const char* append_octal(const char* instr, char* buf, size_t* buflenptr) {
+    char tmpbuf[4] = { '\0', '\0', '\0', '\0' };
+    const char* result = instr;
+
+    for (int i = 0; i < 3; i++) {
+        if (ELTN_is_octdigit(*result)) {
+            tmpbuf[i] = *result;
+            result++;
+        } else {
+            break;
+        }
+    }
+    buf[*buflenptr] = (char)(0xFF & strtol(tmpbuf, NULL, 8));
+    (*buflenptr) += 1;
+    return result;
+}
+
+static const char* append_hex(const char* instr, char* buf, size_t* buflenptr) {
     char tmpbuf[3];
+
+    if (!ELTN_is_hexdigit(instr[0]) || !ELTN_is_hexdigit(instr[1])) {
+        /*
+           TODO: raise error 
+         */
+        return instr;
+    }
     tmpbuf[0] = instr[0];
     tmpbuf[1] = instr[1];
     tmpbuf[2] = '\0';
-    result = strtol(tmpbuf, NULL, 16);
-    return (char)(0xFF & result);
+    buf[*buflenptr] = (char)(0xFF & strtol(tmpbuf, NULL, 16));
+    (*buflenptr) += 1;
+    return instr + 2;
+}
+
+static const char* append_unicode(const char* instr,
+                                  char* buf, size_t* buflenptr) {
+    char32_t cp;
+    size_t cplen;
+    const char* closebracket = strchr(instr, '}');
+
+    if (*instr != '{' || closebracket == NULL) {
+        /*
+           TODO: flag error 
+         */
+        return instr;
+    }
+    cp = (char32_t) strtol(instr + 1, NULL, 16);
+
+    cplen = C_Conv_codepoint_to_char8(cp, *buflenptr,
+                                      (char8_t *) buf + (*buflenptr));
+    (*buflenptr) += cplen;
+    return closebracket + 1;
 }
 
 void ELTN_unescape_quoted_string(ELTN_Pool* h,
@@ -114,13 +159,11 @@ void ELTN_unescape_quoted_string(ELTN_Pool* h,
                 break;
             case 'x':
                 index++;
-                if (ELTN_is_hexdigit(*index) && ELTN_is_hexdigit(*(index+1))) {
-                    bufptr[buflen] = ELTN_to_byte(index);
-                    buflen++;
-                    index += 2;
-                } else {
-                    /* TODO: raise error */
-                }
+                index = append_hex(index, bufptr, &buflen);
+                break;
+            case 'u':
+                index++;
+                index = append_unicode(index, bufptr, &buflen);
                 break;
             case 'z':
                 index++;
@@ -128,8 +171,6 @@ void ELTN_unescape_quoted_string(ELTN_Pool* h,
                     index++;
                 }
                 break;
-            case 'u':
-                /* TODO: unicode sequence */
             case '0':
             case '1':
             case '2':
@@ -138,7 +179,8 @@ void ELTN_unescape_quoted_string(ELTN_Pool* h,
             case '5':
             case '6':
             case '7':
-                /* TODO: handle octal sequence */
+                index = append_octal(index, bufptr, &buflen);
+                break;
             default:
                 bufptr[buflen] = *index;
                 buflen++;

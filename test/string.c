@@ -94,7 +94,7 @@ void string_unicode_escapes() {
     char* str;
     size_t len;
     const char* data =
-        "'this text has unicode:\\u{a}\\u{A9}\\u{1e9e}\\u{1047F}`'";
+        "'this text has unicode:\\u{a}\\u{A9}\\u{1e9e}\\u{1047F}'";
     const char* expect = "this text has unicode:\n\u00A9\u1e9e\U0001047F";
 
     ELTN_unescape_quoted_string(NULL, data, strlen(data), &str, &len);
@@ -105,6 +105,7 @@ void string_unicode_escapes() {
 /*
  * TODO: test bad escape sequences and missing quotes.
  * TODO: test long strings.
+ * TODO: test comments and long comments.
  */
 
 int main(int argc, char* argv[]) {
