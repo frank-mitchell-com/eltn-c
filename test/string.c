@@ -60,7 +60,7 @@ void string_escaped_newline() {
 void string_backslash_z() {
     char* str;
     size_t len;
-    const char* data = "'this text has \\z \\\n\t     no newline'";
+    const char* data = "'this text has \\z \n\t     no newline'";
     const char* expect = "this text has no newline";
 
     ELTN_unescape_quoted_string(NULL, data, strlen(data), &str, &len);
@@ -104,6 +104,7 @@ void string_unicode_escapes() {
 
 /*
  * TODO: test bad escape sequences and missing quotes.
+ * TODO: test long strings.
  */
 
 int main(int argc, char* argv[]) {
