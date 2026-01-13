@@ -1,6 +1,6 @@
 ## Coding
 
-### Parser
+### Source
 
 - Rename Source to Buffer?
 
@@ -9,9 +9,19 @@
 - Revisit Source
   - handle Byte Order Mark silently.
 
+### Lexer
+
 - Implement Lexer
   - pass on i/o error
   - pass on out-of-memory error
+
+- Implement String Routines
+  - unquote long strings
+  - trim comments and long comments
+  - plug leak under error conditions
+  - signal error conditions to caller
+
+### Parser
 
 - Implement Parser
   - handle illegal sequences of tokens
@@ -19,7 +29,6 @@
   - handle i/o errors from source
   - track table indexes & depth
   - track keys already used in each table
-  - unescape strings
 
 ### Emitter
 
@@ -109,8 +118,7 @@
 
 ## Launch
 
-- Move project to GitHub
-  - Include latest version of ELTN spec
+- GitHub configuration
   - Require pull requests (except for me)
   - Use real version tags, as described in README
 - Announce on Lua-L list
