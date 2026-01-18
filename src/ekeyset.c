@@ -65,14 +65,12 @@ Key_Set* Key_Set_new_with_pool(ELTN_Pool* pool) {
     self->pool = pool;
     ELTN_Pool_acquire(&(self->pool));
 
-    memset(self, 0, sizeof(Key_Set));
     self->arraysize = TABLE_MINSIZ;
     self->array = ELTN_alloc(pool, sizeof(Key) * self->arraysize);
     if (self == NULL) {
         ELTN_free(pool, self);
         return NULL;
     }
-    memset(self->array, 0, sizeof(Key) * self->arraysize);
     return self;
 }
 

@@ -65,7 +65,6 @@ ELTN_Lexer* ELTN_Lexer_new_with_pool(ELTN_Pool* pool) {
     if (self == NULL) {
         return NULL;
     }
-    memset(self, 0, sizeof(ELTN_Lexer));
     self->pool = pool;
     ELTN_Pool_acquire(&(self->pool));
     self->token_buffer_size = INIT_BUF_SIZE;

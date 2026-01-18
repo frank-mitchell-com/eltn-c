@@ -47,25 +47,24 @@ struct ELTN_Emitter {
     unsigned int indent;
 };
 
-void ELTN_Emitter_free(ELTN_Emitter* self) {
+ELTN_API void ELTN_Emitter_free(ELTN_Emitter* self) {
     ELTN_Pool* h = self->pool;
 
     ELTN_free(h, self);
     ELTN_Pool_release(&h);
 }
 
-ELTN_Emitter* ELTN_Emitter_new() {
+ELTN_API ELTN_Emitter* ELTN_Emitter_new() {
     return ELTN_Emitter_new_with_pool(NULL);
 }
 
-ELTN_Emitter* ELTN_Emitter_new_with_pool(ELTN_Pool* pool) {
+ELTN_API ELTN_Emitter* ELTN_Emitter_new_with_pool(ELTN_Pool* pool) {
     ELTN_Emitter* result =
         (ELTN_Emitter *) ELTN_alloc(pool, sizeof(ELTN_Emitter));
 
     if (result == NULL) {
         return NULL;
     }
-    memset(result, 0, sizeof(ELTN_Emitter));
     result->pool = pool;
     ELTN_Pool_acquire(&(result->pool));
     result->pretty_print = PRETTY_PRINT_DEFAULT;

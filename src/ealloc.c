@@ -91,11 +91,16 @@ ELTN_API void ELTN_Pool_set(ELTN_Pool** destptr, ELTN_Pool** srcptr) {
 }
 
 void* ELTN_alloc(ELTN_Pool* h, size_t size) {
+    void* result;
     if (h == NULL) {
-        return malloc(size);
+        result = malloc(size);
     } else {
-        return h->alloc(h->alloc_state, NULL, size);
+        result = h->alloc(h->alloc_state, NULL, size);
     }
+    if (result != NULL) {
+        memset(result, 0, size);
+    }
+    return result;
 }
 
 void* ELTN_realloc(ELTN_Pool* h, void* ptr, size_t size) {

@@ -28,15 +28,30 @@
 #include <stdint.h>
 #include "eltn.h"
 
+/**
+ * Allocate a new chunk of memory from the pool, and zero it out.
+ */
 void* ELTN_alloc(ELTN_Pool * h, size_t size);
 
+/**
+ * Extend or reduce a chunk of memory to the new size.
+ */
 void* ELTN_realloc(ELTN_Pool * h, void* ptr, size_t size);
 
+/**
+ * Free a chunk of memory.
+ */
 void ELTN_free(ELTN_Pool * h, void* ptr);
 
+/**
+ * Create a copy of a string using the default allocator.
+ */
 void ELTN_new_string(char** strptr, size_t* lenptr, const char* srcstr,
                      size_t srclen);
 
+/**
+ * Free a string using the default allocator.
+ */
 void ELTN_free_string(char* str);
 
 #endif /* __ELTN_ALLOCATOR */
