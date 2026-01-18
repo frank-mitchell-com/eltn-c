@@ -10,7 +10,7 @@ DLLVERSION := $(subst .,,$(LIBVERSION))
 LIBNAME=eltnc
 HEADERNAME=eltn.h
 
-SRCDIR=.
+SRCDIR=./src
 OBJDIR=./obj
 LIBDIR=./lib
 DLLDIR=./obj-dll
