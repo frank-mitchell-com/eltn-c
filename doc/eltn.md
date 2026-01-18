@@ -109,7 +109,7 @@ An Example of ELTN
 
 Let's say a group of professional programmers keeps a distributed lending
 library of the books on their shelves. Each member uploads an ELTN document
-that lists of the books they’re willing to lend out that might look like this:
+that lists of the books they're willing to lend out that might look like this:
 
 ```lua
 memberid = 13

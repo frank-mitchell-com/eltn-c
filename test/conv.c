@@ -186,14 +186,14 @@ static void string_smoke() {
     lsequal("charlie", ucs2cstr(U"charlie"));
     lsequal("delta", ucs2cstr(U"delta"));
     lsequal("echo", ucs2cstr(U"echo"));
-    lsequal("tsch\\u{fc}\\u{df}", ucs2cstr(U"tschüß"));
+    lsequal("tsch\\u{fc}\\u{df}", ucs2cstr(U"tsch\u00fc\u00df"));
 
     const char* actual = ucs2cstr(cstr2ucs("foxtrot"));
 
     lsequal("foxtrot", actual);
 
     const char32_t* actual2 = cstr2ucs("tsch\\u{fc}\\u{df}!");
-    const char32_t* expect2 = U"tschüß!";
+    const char32_t* expect2 = U"tsch\u00fc\u00df!";
 
     lequal((int)ucslen(expect2), (int)ucslen(actual2));
     for (int i = 0; i < 7; i++) {
