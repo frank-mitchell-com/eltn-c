@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define ELTN_CORE   1
+#include "eltn.h"
 #include "elexer.h"
 #include "esource.h"
 #include "ealloc.h"

@@ -25,10 +25,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include "ealloc.h"
 
 #define  ELTN_CORE	1
 #include "eltn.h"
+#include "ealloc.h"
 
 #define INIT_BUF_SIZE   1024
 

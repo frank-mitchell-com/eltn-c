@@ -80,14 +80,16 @@ $(DLL): $(DLLOBJS)
 	$(CC) -shared -o $(DLL) $^
 
 install: $(LIB) $(SHLIB)
+	mkdir -p $(INSTALL_LIB)
+	mkdir -p $(INSTALL_INC)
 	install -p -t $(INSTALL_LIB) $(LIB) $(SHLIB)
-	install -p -t $(INSTALL_INC) $(HEADERNAME)
+	install -p -t $(INSTALL_INC) $(SRCDIR)/$(HEADERNAME)
 
 dist: $(LIB) $(DLL)
 	mkdir -p $(DIST_NAME)/include
 	mkdir -p $(DIST_NAME)/lib
 	install -p -t $(DIST_NAME)/lib $(LIB) $(DLL)
-	install -p -t $(DIST_NAME)/include $(HEADERNAME)
+	install -p -t $(DIST_NAME)/include $(SRCDIR)/$(HEADERNAME)
 	zip -r $(DIST_NAME).zip $(DIST_NAME)
 	rm -rf $(DIST_NAME)
 

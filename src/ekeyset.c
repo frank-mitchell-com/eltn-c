@@ -25,6 +25,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+
+#define ELTN_CORE   1
+#include "eltn.h"
 #include "ekeyset.h"
 #include "ealloc.h"
 
