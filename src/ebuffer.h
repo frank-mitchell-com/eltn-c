@@ -22,19 +22,19 @@
  *
  ****************************************************************************/
 
-#ifndef __ELTN_SOURCE
-#define __ELTN_SOURCE
+#ifndef __ELTN_BUFFER
+#define __ELTN_BUFFER
 
 #include "eltn.h"
 
-ELTN_Source* ELTN_Source_new_with_pool(ELTN_Pool * pool);
+ELTN_Buffer* ELTN_Buffer_new_with_pool(ELTN_Pool * pool);
 
-size_t ELTN_Source_length(ELTN_Source * s);
+size_t ELTN_Buffer_length(ELTN_Buffer * s);
 
-ssize_t ELTN_Source_read(ELTN_Source * s, ELTN_Reader reader, void* ud);
+ssize_t ELTN_Buffer_read(ELTN_Buffer * s, ELTN_Reader reader, void* ud);
 
-int32_t ELTN_Source_next_char(void* s, bool consume);
+int32_t ELTN_Buffer_next_char(void* s, bool consume);
 
-void ELTN_Source_free(ELTN_Source * self);
+void ELTN_Buffer_free(ELTN_Buffer * self);
 
-#endif /* __ELTN_SOURCE */
+#endif /* __ELTN_BUFFER */

@@ -29,7 +29,7 @@
 #define ELTN_CORE   1
 #include "eltn.h"
 #include "elexer.h"
-#include "esource.h"
+#include "ebuffer.h"
 #include "ealloc.h"
 #include "estring.h"
 

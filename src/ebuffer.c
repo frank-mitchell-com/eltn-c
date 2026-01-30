@@ -28,15 +28,15 @@
 
 #define ELTN_CORE 1
 #include "eltn.h"
-#include "esource.h"
+#include "ebuffer.h"
 #include "convert.h"
 #include "ealloc.h"
 
 #define INIT_BUF_SIZE 1024
 
-/**************************** ELTN_Source ***********************************/
+/**************************** ELTN_Buffer ***********************************/
 
-struct ELTN_Source {
+struct ELTN_Buffer {
     intptr_t _reserved;
     ELTN_Pool* pool;
     ELTN_Reader reader;
@@ -49,7 +49,7 @@ struct ELTN_Source {
     bool eof;
 };
 
-void ELTN_Source_free(ELTN_Source* self) {
+void ELTN_Buffer_free(ELTN_Buffer* self) {
     ELTN_Pool* h = self->pool;
 
     if (self->buffer != NULL) {
@@ -59,20 +59,20 @@ void ELTN_Source_free(ELTN_Source* self) {
     ELTN_Pool_release(&h);
 }
 
-ELTN_Source* ELTN_Source_new_with_pool(ELTN_Pool* pool) {
-    ELTN_Source* result = (ELTN_Source *) ELTN_alloc(pool, sizeof(ELTN_Source));
+ELTN_Buffer* ELTN_Buffer_new_with_pool(ELTN_Pool* pool) {
+    ELTN_Buffer* result = (ELTN_Buffer *) ELTN_alloc(pool, sizeof(ELTN_Buffer));
 
     if (result == NULL) {
         return NULL;
     }
-    memset(result, 0, sizeof(ELTN_Source));
+    memset(result, 0, sizeof(ELTN_Buffer));
     result->pool = pool;
     ELTN_Pool_acquire(&(result->pool));
 
     result->bufsize = INIT_BUF_SIZE;
     result->buffer = (char8_t *) ELTN_alloc(pool, result->bufsize);
     if (result->buffer == NULL) {
-        ELTN_Source_free(result);
+        ELTN_Buffer_free(result);
         return NULL;
     }
     memset(result->buffer, 0, INIT_BUF_SIZE);
@@ -83,7 +83,7 @@ ELTN_Source* ELTN_Source_new_with_pool(ELTN_Pool* pool) {
     return result;
 }
 
-size_t ELTN_Source_length(ELTN_Source* self) {
+size_t ELTN_Buffer_length(ELTN_Buffer* self) {
     if (self->head <= self->tail) {
         return self->tail - self->head;
     } else {
@@ -91,12 +91,12 @@ size_t ELTN_Source_length(ELTN_Source* self) {
     }
 }
 
-ELTN_API size_t ELTN_Source_capacity(ELTN_Source* self) {
+ELTN_API size_t ELTN_Buffer_capacity(ELTN_Buffer* self) {
     return self->bufsize;
 }
 
-ELTN_API bool ELTN_Source_set_capacity(ELTN_Source* self, size_t newcap) {
-    const size_t length = ELTN_Source_length(self);
+ELTN_API bool ELTN_Buffer_set_capacity(ELTN_Buffer* self, size_t newcap) {
+    const size_t length = ELTN_Buffer_length(self);
 
     if (newcap <= length) {
         return false;
@@ -137,15 +137,15 @@ ELTN_API bool ELTN_Source_set_capacity(ELTN_Source* self, size_t newcap) {
     return true;
 }
 
-ELTN_API bool ELTN_Source_is_empty(ELTN_Source* self) {
+ELTN_API bool ELTN_Buffer_is_empty(ELTN_Buffer* self) {
     return self->head == self->tail;
 }
 
-ELTN_API bool ELTN_Source_is_closed(ELTN_Source* self) {
+ELTN_API bool ELTN_Buffer_is_closed(ELTN_Buffer* self) {
     return self->eof;
 }
 
-static ssize_t read_into_buffer(ELTN_Source* self, bool first) {
+static ssize_t read_into_buffer(ELTN_Buffer* self, bool first) {
     ssize_t writeresult = 0;
     size_t readsize = 0;
     char* text = NULL;
@@ -162,7 +162,7 @@ static ssize_t read_into_buffer(ELTN_Source* self, bool first) {
          */
     }
 
-    writeresult = ELTN_Source_write(self, text, readsize);
+    writeresult = ELTN_Buffer_write(self, text, readsize);
     free(text);
 
     if (errcode != 0) {
@@ -178,7 +178,7 @@ static ssize_t read_into_buffer(ELTN_Source* self, bool first) {
     return readsize;
 }
 
-ssize_t ELTN_Source_read(ELTN_Source* self, ELTN_Reader reader,
+ssize_t ELTN_Buffer_read(ELTN_Buffer* self, ELTN_Reader reader,
                          void* reader_state) {
     if (!reader) {
         return -1;
@@ -190,15 +190,15 @@ ssize_t ELTN_Source_read(ELTN_Source* self, ELTN_Reader reader,
     return read_into_buffer(self, true);
 }
 
-ELTN_API ssize_t ELTN_Source_write(ELTN_Source* self, const char* text,
+ELTN_API ssize_t ELTN_Buffer_write(ELTN_Buffer* self, const char* text,
                                    size_t len) {
-    const size_t currlen = ELTN_Source_length(self);
+    const size_t currlen = ELTN_Buffer_length(self);
 
     if (self->eof) {
         return -1;
     }
-    if (currlen + len >= ELTN_Source_capacity(self)) {
-        bool status = ELTN_Source_set_capacity(self, (currlen + len) * 2);
+    if (currlen + len >= ELTN_Buffer_capacity(self)) {
+        bool status = ELTN_Buffer_set_capacity(self, (currlen + len) * 2);
 
         if (!status) {
             return -1;
@@ -218,11 +218,11 @@ ELTN_API ssize_t ELTN_Source_write(ELTN_Source* self, const char* text,
     return len;
 }
 
-ELTN_API void ELTN_Source_close(ELTN_Source* self) {
+ELTN_API void ELTN_Buffer_close(ELTN_Buffer* self) {
     self->eof = true;
 }
 
-static int32_t next_byte(ELTN_Source* self, bool consume) {
+static int32_t next_byte(ELTN_Buffer* self, bool consume) {
     if (self->head == self->tail) {
         return -1;
     }
@@ -237,7 +237,7 @@ static int32_t next_byte(ELTN_Source* self, bool consume) {
     return c;
 }
 
-static bool ensure_more_bytes(ELTN_Source* self) {
+static bool ensure_more_bytes(ELTN_Buffer* self) {
     if (self->eof) {
         return false;
     }
@@ -246,7 +246,7 @@ static bool ensure_more_bytes(ELTN_Source* self) {
         return false;
     }
 
-    while (ELTN_Source_length(self) == 0) {
+    while (ELTN_Buffer_length(self) == 0) {
         if (read_into_buffer(self, false) < 0) {
             return false;
         }
@@ -254,8 +254,8 @@ static bool ensure_more_bytes(ELTN_Source* self) {
     return true;
 }
 
-int32_t ELTN_Source_next_char(void* state, bool consume) {
-    ELTN_Source* self = (ELTN_Source *) state;
+int32_t ELTN_Buffer_next_char(void* state, bool consume) {
+    ELTN_Buffer* self = (ELTN_Buffer *) state;
 
     if (self->head == self->tail) {
         if (!ensure_more_bytes(self)) {

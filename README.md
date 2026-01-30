@@ -151,7 +151,7 @@ I'm not aware.
 Unless I (or others?) change the specification, the ELTN-C API will not change.
 Improvements will hopefully make it faster and/or less memory intensive.
 
-Another set of improvements would make `ELTN_Source` functions thread-safe.
+Another set of improvements would make `ELTN_Buffer` functions thread-safe.
 This would allow asyncronous I/O to feed text to a parser
 while the (single) parser thread waits for input,
 in the classic producer/consumer pattern.

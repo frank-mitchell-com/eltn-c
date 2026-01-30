@@ -31,7 +31,7 @@
 #define  ELTN_CORE    1
 #include "eltn.h"
 #include "elexer.h"
-#include "esource.h"
+#include "ebuffer.h"
 #include "convert.h"
 #include "ealloc.h"
 #include "estring.h"
@@ -54,7 +54,7 @@ struct Stack_Frame {
 struct ELTN_Parser {
     intptr_t _reserved;
     ELTN_Pool* pool;
-    ELTN_Source* source;
+    ELTN_Buffer* buffer;
     ELTN_Lexer* lexer;
 
     /*
@@ -99,8 +99,8 @@ ELTN_API ELTN_Parser* ELTN_Parser_new_with_pool(ELTN_Pool* pool) {
     self->pool = pool;
     ELTN_Pool_acquire(&(self->pool));
 
-    self->source = ELTN_Source_new_with_pool(pool);
-    if (self->source == NULL) {
+    self->buffer = ELTN_Buffer_new_with_pool(pool);
+    if (self->buffer == NULL) {
         ELTN_Parser_free(self);
         return NULL;
     }
@@ -109,8 +109,8 @@ ELTN_API ELTN_Parser* ELTN_Parser_new_with_pool(ELTN_Pool* pool) {
         ELTN_Parser_free(self);
         return NULL;
     }
-    ELTN_Lexer_set_char_source(self->lexer, ELTN_Source_next_char,
-                               self->source);
+    ELTN_Lexer_set_char_source(self->lexer, ELTN_Buffer_next_char,
+                               self->buffer);
     return self;
 }
 
@@ -120,15 +120,15 @@ ELTN_API void ELTN_Parser_free(ELTN_Parser* self) {
     }
     ELTN_Pool* h = self->pool;
 
-    ELTN_Source_free(self->source);
+    ELTN_Buffer_free(self->buffer);
     ELTN_Lexer_free(self->lexer);
     ELTN_free(h, self->string);
     ELTN_free(h, self);
     ELTN_Pool_release(&h);
 }
 
-ELTN_API ELTN_Source* ELTN_Parser_source(ELTN_Parser* self) {
-    return self->source;
+ELTN_API ELTN_Buffer* ELTN_Parser_buffer(ELTN_Parser* self) {
+    return self->buffer;
 }
 
 ELTN_API bool ELTN_Parser_include_comments(ELTN_Parser* self) {
@@ -141,15 +141,15 @@ ELTN_API void ELTN_Parser_set_include_comments(ELTN_Parser* self, bool b) {
 
 ELTN_API ssize_t ELTN_Parser_read(ELTN_Parser* self, ELTN_Reader reader,
                                   void* state) {
-    return ELTN_Source_read(self->source, reader, state);
+    return ELTN_Buffer_read(self->buffer, reader, state);
 }
 
 ELTN_API ssize_t ELTN_Parser_read_string(ELTN_Parser* self, const char* text,
                                          size_t len) {
-    ELTN_Source* src = ELTN_Parser_source(self);
-    ssize_t result = ELTN_Source_write(src, text, len);
+    ELTN_Buffer* src = ELTN_Parser_buffer(self);
+    ssize_t result = ELTN_Buffer_write(src, text, len);
 
-    ELTN_Source_close(src);
+    ELTN_Buffer_close(src);
     return result;
 }
 

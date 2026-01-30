@@ -1,12 +1,8 @@
 ## Coding
 
-### Source
+### Buffer
 
-- Rename Source to Buffer?
-
-- Unhide `ELTN_Source_read`?
-
-- Revisit Source
+- Revisit Buffer
   - handle Byte Order Mark silently.
 
 ### Lexer
@@ -50,7 +46,7 @@
 
 ### Parser
 
-- Test `ELTN_Source`
+- Test `ELTN_Buffer`
   - reader returns an error condition
   - forcing a read without a reader function
   - attempting to write to a closed Source
@@ -176,10 +172,10 @@
 ### Multithreading
 
 - Multithreaded Mode
-  - Instead of expanding capacity in `ELTN_Source`,
+  - Instead of expanding capacity in `ELTN_Buffer`,
     block until parser catches up.
     - May need to carve incoming text into smaller chunks.
-  - Non-blocking `ELTN_Source_write_nb` that simply gives up or times out
+  - Non-blocking `ELTN_Buffer_write_nb` that simply gives up or times out
     if the source is at maximum capacity.
 
 
