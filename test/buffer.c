@@ -106,7 +106,7 @@ void buffer_write() {
 
     lok(buffer != NULL);
 
-    memset(buffer, 0, sizeof(buffer));
+    memset(strbuf, 0, sizeof(strbuf));
 
     lequal(0, (int)ELTN_Buffer_length(buffer));
     lequal(testdatalen, (int)ELTN_Buffer_write(buffer, testdata, testdatalen));
