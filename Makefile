@@ -7,7 +7,7 @@ CC=gcc
 LIBVERSION := $(file <VERSION.txt)
 DLLVERSION := $(subst .,,$(LIBVERSION))
 
-LIBNAME=eltnc
+LIBNAME=eltn
 HEADERNAME=eltn.h
 
 SRCDIR=./src
@@ -94,6 +94,6 @@ dist: $(LIB) $(DLL)
 	rm -rf $(DIST_NAME)
 
 clean:
-	rm -f $(OBJECTS) $(DLLOBJS) $(LIB) $(SHLIB) $(SHLIB_ALIAS) $(DLL) $(TESTS)
-	rmdir $(OBJDIR) $(LIBDIR) $(DLLDIR)
+	rm -rf $(OBJDIR) $(LIBDIR) $(DLLDIR)
+	rm -f $(TESTS)
 
