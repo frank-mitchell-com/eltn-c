@@ -25,6 +25,10 @@
 #ifndef __ELTN_PARSER
 #define __ELTN_PARSER
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -114,7 +118,7 @@ typedef void* (*ELTN_Alloc)(void* state, void* ptr, size_t size);
  * A callback the {@link ELTN_Parser} uses to read an ELTN document.
  *
  * @param state (in) a reference used to read data, such as a file pointer
- * @param strptr (out) a pointer to the string read, as memory to be `free)_`d,
+ * @param strptr (out) a pointer to the string read, as memory to be `free()`d,
  *               or NULL if at end of the document.
  * @param sizeptr (out) a pointer to the size of the string read,
  *                or to 0 at the end of the document.
@@ -938,5 +942,9 @@ ELTN_API void ELTN_Pool_release(ELTN_Pool ** hptr);
  * @param src the reference to copy into the value of @p dest.
  */
 ELTN_API void ELTN_Pool_set(ELTN_Pool ** dest, ELTN_Pool ** src);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __ELTN_PARSER */
