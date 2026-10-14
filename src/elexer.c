@@ -37,6 +37,10 @@
 
 #define KEYWORDS_SIZE 22
 
+/*
+ * Keywords in Lua 5.4.  5.5 adds "global", but it's a "soft" keyword
+ * and might also be a NAME token.
+ */
 const char* KEYWORDS[] = {
     "and", "break", "do", "else", "elseif", "end",
     "false", "for", "function", "goto", "if", "in",
