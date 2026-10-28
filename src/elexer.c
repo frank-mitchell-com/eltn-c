@@ -77,7 +77,7 @@ ELTN_Lexer* ELTN_Lexer_new_with_pool(ELTN_Pool* pool) {
     self->token_buffer = ELTN_alloc(pool, self->token_buffer_size);
     if (self->token_buffer == NULL) {
         ELTN_Lexer_free(self);
-        return false;
+        return NULL;
     }
     self->token_buffer_tail = self->token_buffer;
     return self;

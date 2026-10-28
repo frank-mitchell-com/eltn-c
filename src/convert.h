@@ -42,6 +42,7 @@ typedef uint32_t char32_t;
 
 
 typedef enum FMC_Byte_Order {
+    FMC_UNDEFINED = 0,
     FMC_BYTE,
     FMC_UCS_2,
     FMC_UCS_2_SWAP,
