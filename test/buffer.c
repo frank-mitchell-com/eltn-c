@@ -27,7 +27,7 @@
 #include <string.h>
 #include <strings.h>
 #include "minctest.h"
-#include "convert.h"
+#include "econv.h"
 #include "ebuffer.h"
 
 #define BUFFER_SIZE     64

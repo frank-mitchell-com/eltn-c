@@ -32,7 +32,7 @@
 #include "eltn.h"
 #include "elexer.h"
 #include "ebuffer.h"
-#include "convert.h"
+#include "econv.h"
 #include "ealloc.h"
 #include "estring.h"
 #include "ekeyset.h"

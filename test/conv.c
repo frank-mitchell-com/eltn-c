@@ -26,7 +26,7 @@
 #include <string.h>
 #include <strings.h>
 #include "minctest.h"
-#include "convert.h"
+#include "econv.h"
 
 #define STRBUFSIZ   512
 #define ESCBUFSIZ   32
@@ -156,7 +156,7 @@ static const char8_t* ucs2utf8(const char32_t* s) {
     char8_t buf[STRBUFSIZ];
 
     memset(buf, 0, sizeof(buf));
-    bsz = C_Conv_char32_to_8(ucslen(s), s, STRBUFSIZ, buf);
+    bsz = ELTN_Conv_char32_to_8(ucslen(s), s, STRBUFSIZ, buf);
 
     return (char8_t *) stralloc(buf, bsz, sizeof(char8_t));
 }
@@ -224,7 +224,7 @@ static void conv_char32_to_8() {
 
     memset(outbuf, 0, STRBUFSIZ);
 
-    C_Conv_to_char8(FMC_UCS_4, insz * sizeof(char32_t), (char8_t *) inbuf,
+    ELTN_Conv_to_char8(ELTN_UCS_4, insz * sizeof(char32_t), (char8_t *) inbuf,
                     STRBUFSIZ, outbuf, &nread, &nwritten);
     errcode = errno;
 
@@ -247,7 +247,7 @@ static void conv_char16_to_8() {
 
     memset(outbuf, 0, STRBUFSIZ);
 
-    C_Conv_to_char8(FMC_UCS_2, insz * sizeof(char16_t), (char8_t *) inbuf,
+    ELTN_Conv_to_char8(ELTN_UCS_2, insz * sizeof(char16_t), (char8_t *) inbuf,
                     STRBUFSIZ, outbuf, &nread, &nwritten);
     errcode = errno;
 
@@ -270,8 +270,8 @@ static void conv_is_ascii() {
     const char* test1 = "This is ASCII";
     const char* test2 = "This (\xC2\xA3) is not ASCII";
 
-    lequal(true, C_Conv_is_ascii(strlen(test1), test1));
-    lequal(false, C_Conv_is_ascii(strlen(test2), test2));
+    lequal(true, ELTN_Conv_is_ascii(strlen(test1), test1));
+    lequal(false, ELTN_Conv_is_ascii(strlen(test2), test2));
 }
 
 

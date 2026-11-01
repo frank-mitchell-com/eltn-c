@@ -24,7 +24,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "convert.h"
+#include "econv.h"
 #include "ealloc.h"
 #include "estring.h"
 
@@ -77,8 +77,8 @@ static const char* append_unicode(const char* instr,
     }
     cp = (char32_t) strtol(instr + 1, NULL, 16);
 
-    cplen = C_Conv_codepoint_to_char8(cp, *buflenptr,
-                                      (char8_t *) buf + (*buflenptr));
+    cplen = ELTN_Conv_codepoint_to_char8(cp, *buflenptr,
+                                         (char8_t *) buf + (*buflenptr));
     (*buflenptr) += cplen;
     return closebracket + 1;
 }

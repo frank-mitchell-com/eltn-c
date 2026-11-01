@@ -29,8 +29,8 @@
 #define ELTN_CORE 1
 #include "eltn.h"
 #include "ebuffer.h"
-#include "convert.h"
 #include "ealloc.h"
+#include "econv.h"
 
 #define INIT_BUF_SIZE 1024
 
@@ -49,7 +49,7 @@ struct ELTN_Buffer {
     size_t length;
     bool eof;
 
-    FMC_Byte_Order byteorder;
+    ELTN_Byte_Order byteorder;
 };
 
 void ELTN_Buffer_free(ELTN_Buffer* self) {
@@ -83,7 +83,7 @@ ELTN_Buffer* ELTN_Buffer_new_with_pool(ELTN_Pool* pool) {
     result->tail = result->buffer;
     result->length = 0;
     result->eof = false;
-    result->byteorder = FMC_UNDEFINED;
+    result->byteorder = ELTN_UNDEFINED;
 
     return result;
 }
@@ -204,19 +204,20 @@ ELTN_API ssize_t ELTN_Buffer_write(ELTN_Buffer* self, const char* text,
         }
     }
 
-    if (self->byteorder == FMC_UNDEFINED) {
-        self->byteorder = C_Conv_byte_order(len, (const char8_t *)text, &skip);
+    if (self->byteorder == ELTN_UNDEFINED) {
+        self->byteorder =
+            ELTN_Conv_byte_order(len, (const char8_t *)text, &skip);
     }
 
     /*
      * Copying to a temporary buffer is sub-optimal in the common case of
      * UTF-8 or ASCII input, with or without a BOM.
      */
-    if (self->byteorder == FMC_UNKNOWN) {
+    if (self->byteorder == ELTN_UNKNOWN) {
         convtext = (char8_t *) text;
         convlen = (size_t)len;
         convfree = false;
-    } else if (self->byteorder == FMC_BYTE) {
+    } else if (self->byteorder == ELTN_BYTE) {
         convtext = (char8_t *) (text + skip);
         convlen = (size_t)len - skip;
         convfree = false;
@@ -227,9 +228,9 @@ ELTN_API ssize_t ELTN_Buffer_write(ELTN_Buffer* self, const char* text,
         do {
             convtext = ELTN_realloc(self->pool, convtext, bufsize);
             memset(convtext, 0, convlen);
-            C_Conv_to_char8(self->byteorder,
-                            len, (char8_t *) (text + skip),
-                            bufsize, convtext, &nread, &nwrite);
+            ELTN_Conv_to_char8(self->byteorder,
+                               len, (char8_t *) (text + skip),
+                               bufsize, convtext, &nread, &nwrite);
         } while (nread < len);
         /*
            nwrite includes the null character 

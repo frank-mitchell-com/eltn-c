@@ -25,7 +25,7 @@
 #define __ELTN_LEXER
 
 #include "eltn.h"
-#include "convert.h"
+#include "econv.h"
 
 typedef int32_t(*ELTN_Char_Source) (void* state, bool consume);
 

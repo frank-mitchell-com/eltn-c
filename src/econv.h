@@ -20,8 +20,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef FMC_CONVERT_INCLUDED
-#define FMC_CONVERT_INCLUDED
+#ifndef __ELTN_CONVERT
+#define __ELTN_CONVERT
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -41,55 +41,56 @@ typedef uint32_t char32_t;
 #endif
 
 
-typedef enum FMC_Byte_Order {
-    FMC_UNDEFINED = 0,
-    FMC_BYTE,
-    FMC_UCS_2,
-    FMC_UCS_2_SWAP,
-    FMC_UCS_4,
-    FMC_UCS_4_SWAP_4321,
-    FMC_UCS_4_SWAP_3412,
-    FMC_UCS_4_SWAP_2143,
-    FMC_UNKNOWN
-} FMC_Byte_Order;
+typedef enum ELTN_Byte_Order {
+    ELTN_UNDEFINED = 0,
+    ELTN_BYTE,
+    ELTN_UCS_2,
+    ELTN_UCS_2_SWAP,
+    ELTN_UCS_4,
+    ELTN_UCS_4_SWAP_4321,
+    ELTN_UCS_4_SWAP_3412,
+    ELTN_UCS_4_SWAP_2143,
+    ELTN_UNKNOWN
+} ELTN_Byte_Order;
 
 
 /**
  * Determine whether a string is pure ASCII.
  * `false` implies UTF-8 or a Latin encoding.
  */
-bool C_Conv_is_ascii(size_t sz, const char* buf);
+bool ELTN_Conv_is_ascii(size_t sz, const char* buf);
 
 /**
  * Derive a byte ordering from the first four bytes.
  * Ideally the first bytes would contain the Byte Order Mark, but if not
  * assume the text translates to ASCII characters.
  */
-FMC_Byte_Order C_Conv_byte_order(size_t insz, const char8_t * inbuf,
-                                 size_t* skipptr);
+ELTN_Byte_Order ELTN_Conv_byte_order(size_t insz, const char8_t * inbuf,
+                                     size_t* skipptr);
 
 /*
  * Convert 16 bit characters (UTF-16/UCS2) to 8-bit characters (UTF-8).
  */
-size_t C_Conv_char16_to_8(size_t insz, const char16_t * inbuf, size_t outsz,
-                          char8_t * outbuf);
+size_t ELTN_Conv_char16_to_8(size_t insz, const char16_t * inbuf, size_t outsz,
+                             char8_t * outbuf);
 
 /*
  * Convert 32-bit characters (UTF-32/UCS4) to 8-bit characters (UTF-8).
  */
-size_t C_Conv_char32_to_8(size_t insz, const char32_t * inbuf, size_t outsz,
-                          char8_t * outbuf);
+size_t ELTN_Conv_char32_to_8(size_t insz, const char32_t * inbuf, size_t outsz,
+                             char8_t * outbuf);
 
 /**
  * Given a byte ordering, convert multibyte text to single bytes of UTF-8.
  */
-void C_Conv_to_char8(FMC_Byte_Order order, size_t insz, const char8_t * inbuf,
-                     size_t outsz, char8_t * outbuf, size_t* nreadptr,
-                     size_t* nwrittenptr);
+void ELTN_Conv_to_char8(ELTN_Byte_Order order, size_t insz,
+                        const char8_t * inbuf, size_t outsz, char8_t * outbuf,
+                        size_t* nreadptr, size_t* nwrittenptr);
 
 /**
  * Convert a single UCS-4 codepoint to UTF-8.
  */
-size_t C_Conv_codepoint_to_char8(char32_t cp, size_t outsz, char8_t * outbuf);
+size_t ELTN_Conv_codepoint_to_char8(char32_t cp, size_t outsz,
+                                    char8_t * outbuf);
 
-#endif // FMC_CONVERT_INCLUDED
+#endif // __ELTN_CONVERT

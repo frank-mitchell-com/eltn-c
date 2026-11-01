@@ -23,7 +23,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include "convert.h"
+#include "econv.h"
 
 #define OCTET(x) ((uint8_t)(0xff & (x)))
 
@@ -32,7 +32,7 @@
 #define MAX(a, b)   (((a) > (b)) ? (a) : (b))
 #define MIN(a, b)   (((a) > (b)) ? (b) : (a))
 
-bool C_Conv_is_ascii(size_t sz, const char* buf) {
+bool ELTN_Conv_is_ascii(size_t sz, const char* buf) {
     for (int i = 0; i < sz; i++) {
         if (buf[i] < 0 || buf[i] > 127) {
             return false;
@@ -41,8 +41,8 @@ bool C_Conv_is_ascii(size_t sz, const char* buf) {
     return true;
 }
 
-FMC_Byte_Order C_Conv_byte_order(size_t insz, const char8_t* inbuf,
-                                 size_t* skipptr) {
+ELTN_Byte_Order ELTN_Conv_byte_order(size_t insz, const char8_t* inbuf,
+                                     size_t* skipptr) {
 
     /*
      * Look for Byte Order Mark.
@@ -54,7 +54,7 @@ FMC_Byte_Order C_Conv_byte_order(size_t insz, const char8_t* inbuf,
         if (skipptr) {
             *skipptr = 3;
         }
-        return FMC_BYTE;
+        return ELTN_BYTE;
     }
     if (insz >= 4) {
         /*
@@ -68,22 +68,22 @@ FMC_Byte_Order C_Conv_byte_order(size_t insz, const char8_t* inbuf,
             if (skipptr) {
                 *skipptr = 4;
             }
-            return FMC_UCS_4;
+            return ELTN_UCS_4;
         } else if (first_word == 0xFFFE0000) {
             if (skipptr) {
                 *skipptr = 4;
             }
-            return FMC_UCS_4_SWAP_4321;
+            return ELTN_UCS_4_SWAP_4321;
         } else if (first_word == 0xFEFF0000) {
             if (skipptr) {
                 *skipptr = 4;
             }
-            return FMC_UCS_4_SWAP_3412;
+            return ELTN_UCS_4_SWAP_3412;
         } else if (first_word == 0x0000FFEF) {
             if (skipptr) {
                 *skipptr = 4;
             }
-            return FMC_UCS_4_SWAP_2143;
+            return ELTN_UCS_4_SWAP_2143;
         }
         uint16_t first_half_word = ((uint16_t *) inbuf)[0];
 
@@ -91,18 +91,18 @@ FMC_Byte_Order C_Conv_byte_order(size_t insz, const char8_t* inbuf,
             if (skipptr) {
                 *skipptr = 2;
             }
-            return FMC_UCS_2;
+            return ELTN_UCS_2;
         } else if (first_half_word == 0xFFEF) {
             if (skipptr) {
                 *skipptr = 2;
             }
-            return FMC_UCS_2_SWAP;
+            return ELTN_UCS_2_SWAP;
         }
     }
     if (skipptr) {
         *skipptr = 0;
     }
-    return FMC_UNKNOWN;
+    return ELTN_UNKNOWN;
 }
 
 /* -------------------------- UTF-x Conversions -------------------------- */
@@ -208,8 +208,8 @@ static int read_utf16(char32_t* cpp, size_t insz, const char16_t* inbuf,
     }
 }
 
-size_t C_Conv_char16_to_8(size_t insz, const char16_t* inbuf, size_t outsz,
-                          char8_t* outbuf) {
+size_t ELTN_Conv_char16_to_8(size_t insz, const char16_t* inbuf, size_t outsz,
+                             char8_t* outbuf) {
     int i = 0;
     int j = 0;
 
@@ -232,8 +232,8 @@ size_t C_Conv_char16_to_8(size_t insz, const char16_t* inbuf, size_t outsz,
     return j;
 }
 
-size_t C_Conv_char32_to_8(size_t insz, const char32_t* inbuf, size_t outsz,
-                          char8_t* outbuf) {
+size_t ELTN_Conv_char32_to_8(size_t insz, const char32_t* inbuf, size_t outsz,
+                             char8_t* outbuf) {
     size_t i;
     size_t j = 0;
 
@@ -248,10 +248,10 @@ size_t C_Conv_char32_to_8(size_t insz, const char32_t* inbuf, size_t outsz,
     return j;
 }
 
-void C_Conv_to_char8(FMC_Byte_Order order, size_t insz, const char8_t* inbuf,
-                     size_t outsz, char8_t* outbuf, size_t* nreadptr,
-                     size_t* nwriteptr) {
-    FMC_Byte_Order base_order = order;
+void ELTN_Conv_to_char8(ELTN_Byte_Order order, size_t insz,
+                        const char8_t* inbuf, size_t outsz, char8_t* outbuf,
+                        size_t* nreadptr, size_t* nwriteptr) {
+    ELTN_Byte_Order base_order = order;
     size_t nread = 0;
     size_t nwrite = 0;
     char8_t tmpbuf[insz + 1];
@@ -260,39 +260,41 @@ void C_Conv_to_char8(FMC_Byte_Order order, size_t insz, const char8_t* inbuf,
     tmpbuf[insz] = '\0';
 
     switch (order) {
-    case FMC_UCS_4_SWAP_4321:
+    case ELTN_UCS_4_SWAP_4321:
         flip_bytes_4(insz, tmpbuf);
-        base_order = FMC_UCS_4;
+        base_order = ELTN_UCS_4;
         break;
-    case FMC_UCS_4_SWAP_3412:
+    case ELTN_UCS_4_SWAP_3412:
         flip_bytes_4(insz, tmpbuf);
         flip_bytes_2(insz, tmpbuf);
-        base_order = FMC_UCS_4;
+        base_order = ELTN_UCS_4;
         break;
-    case FMC_UCS_4_SWAP_2143:
+    case ELTN_UCS_4_SWAP_2143:
         flip_bytes_2(insz, tmpbuf);
-        base_order = FMC_UCS_4;
+        base_order = ELTN_UCS_4;
         break;
-    case FMC_UCS_2_SWAP:
+    case ELTN_UCS_2_SWAP:
         flip_bytes_2(insz, tmpbuf);
-        base_order = FMC_UCS_2;
+        base_order = ELTN_UCS_2;
         break;
     default:
         base_order = order;
         break;
     }
-    if (base_order == FMC_UCS_4) {
+    if (base_order == ELTN_UCS_4) {
         const size_t insz32 = insz / sizeof(char32_t);
 
         nread = insz32 * sizeof(char32_t);
         nwrite =
-            C_Conv_char32_to_8(insz32, (const char32_t *)tmpbuf, outsz, outbuf);
-    } else if (base_order == FMC_UCS_2) {
+            ELTN_Conv_char32_to_8(insz32, (const char32_t *)tmpbuf, outsz,
+                                  outbuf);
+    } else if (base_order == ELTN_UCS_2) {
         const size_t insz16 = insz / sizeof(char16_t);
 
         nread = insz16 * sizeof(char16_t);
         nwrite =
-            C_Conv_char16_to_8(insz16, (const char16_t *)tmpbuf, outsz, outbuf);
+            ELTN_Conv_char16_to_8(insz16, (const char16_t *)tmpbuf, outsz,
+                                  outbuf);
     } else {
         const size_t size = MIN(insz, outsz);
 
@@ -309,6 +311,6 @@ void C_Conv_to_char8(FMC_Byte_Order order, size_t insz, const char8_t* inbuf,
     }
 }
 
-size_t C_Conv_codepoint_to_char8(char32_t cp, size_t outsz, char8_t* outbuf) {
+size_t ELTN_Conv_codepoint_to_char8(char32_t cp, size_t outsz, char8_t* outbuf) {
     return write_utf8(cp, outsz, outbuf, 0);
 }
