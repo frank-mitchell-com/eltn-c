@@ -41,7 +41,8 @@ bool C_Conv_is_ascii(size_t sz, const char* buf) {
     return true;
 }
 
-FMC_Byte_Order C_Conv_byte_order(size_t insz, char8_t* inbuf, size_t* skipptr) {
+FMC_Byte_Order C_Conv_byte_order(size_t insz, const char8_t* inbuf,
+                                 size_t* skipptr) {
 
     /*
      * Look for Byte Order Mark.

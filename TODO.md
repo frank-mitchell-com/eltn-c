@@ -1,10 +1,5 @@
 ## Coding
 
-### Buffer
-
-- Revisit Buffer
-  - handle Byte Order Mark silently.
-
 ### Lexer
 
 - Implement Lexer
@@ -52,7 +47,7 @@
   - attempting to write to a closed Source
   - forcing a read of an empty Source
   - allocator failure?
-  - test for byte order mark
+  - test for byte order mark with swapped bytes
 
 - Test `ELTN_Lexer`
   - long comments (more)

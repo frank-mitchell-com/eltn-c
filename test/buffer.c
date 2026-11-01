@@ -20,6 +20,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,6 +87,51 @@ static void read_all_buffer(ELTN_Buffer* buffer, char8_t* outbuf, size_t outlen)
     }
 }
 
+static void print_string(const char* label, const char8_t* str, size_t len,
+                         size_t charsize) {
+    char outbuf[4096];
+    int outind = 0;
+
+    memset(outbuf, 0, sizeof(outbuf));
+    for (int i = 0; i < len * charsize; i += charsize) {
+        char32_t chr = 0;
+
+        switch (charsize) {
+        case 4:
+            chr = *(char32_t *) (str + i);
+            break;
+        case 2:
+            chr = *(char16_t *) (str + i);
+            break;
+        default:
+            chr = *(char8_t *) (str + i);
+            break;
+        }
+
+        switch (chr) {
+        case 0:
+            sprintf(outbuf + outind, "\\0");
+            outind += 2;
+            break;
+        case ' ':
+            sprintf(outbuf + outind, " ");
+            outind += 1;
+            break;
+        default:
+            if (isgraph(chr) && chr < 0xFF) {
+                outbuf[outind] = (char)chr;
+                outind++;
+            } else {
+                int nprint = sprintf(outbuf + outind, "\\u{%x}", chr);
+
+                outind += nprint;
+            }
+            break;
+        }
+    }
+    printf("*** DEBUG %s: %s\n", label, outbuf);
+}
+
 void buffer_smoke() {
     ELTN_Buffer* buffer = ELTN_Buffer_new_with_pool(NULL);
 
@@ -103,13 +149,15 @@ void buffer_write() {
     const char* testdata = "hello world";
     const int testdatalen = strlen(testdata);
     char8_t strbuf[BUFFER_SIZE];
+    size_t written;
 
     lok(buffer != NULL);
 
     memset(strbuf, 0, sizeof(strbuf));
 
     lequal(0, (int)ELTN_Buffer_length(buffer));
-    lequal(testdatalen, (int)ELTN_Buffer_write(buffer, testdata, testdatalen));
+    written = ELTN_Buffer_write(buffer, (char *)testdata, testdatalen);
+    lequal(testdatalen, (int)written);
     lequal(testdatalen, (int)ELTN_Buffer_length(buffer));
     lok(!ELTN_Buffer_is_empty(buffer));
     lok(!ELTN_Buffer_is_closed(buffer));
@@ -216,12 +264,109 @@ void buffer_ring_resize() {
     ELTN_Buffer_free(buffer);
 }
 
+void buffer_write_bom32() {
+    ELTN_Buffer* buffer = ELTN_Buffer_new_with_pool(NULL);
+    const char32_t* testdata = U"\ufeffhello world";
+    const char* expect = "hello world";
+    const int testdatalen = (strlen(expect) + 1) * 4;
+    const int expectlen = strlen(expect);
+    char8_t strbuf[BUFFER_SIZE];
+    size_t written;
+
+    lok(buffer != NULL);
+
+    memset(strbuf, 0, sizeof(strbuf));
+
+    lequal(0, (int)ELTN_Buffer_length(buffer));
+
+    written = ELTN_Buffer_write(buffer, (char *)testdata, testdatalen);
+    lequal(expectlen, (int)written);
+    lequal(expectlen, (int)ELTN_Buffer_length(buffer));
+
+    ELTN_Buffer_close(buffer);
+
+    read_all_buffer(buffer, strbuf, sizeof(strbuf));
+
+    lequal(expectlen, (int)strlen((const char *)strbuf));
+    lsequal(expect, (const char *)strbuf);
+
+    lok(ELTN_Buffer_is_empty(buffer));
+
+    ELTN_Buffer_free(buffer);
+}
+
+void buffer_write_bom16() {
+    ELTN_Buffer* buffer = ELTN_Buffer_new_with_pool(NULL);
+    const char16_t* testdata = u"\ufeffhello world";
+    const char* expect = "hello world";
+    const int testdatalen = (strlen(expect) + 1) * 2;
+    const int expectlen = strlen(expect);
+    char8_t strbuf[BUFFER_SIZE];
+    size_t written;
+
+    lok(buffer != NULL);
+
+    memset(strbuf, 0, sizeof(strbuf));
+
+    lequal(0, (int)ELTN_Buffer_length(buffer));
+
+    written = ELTN_Buffer_write(buffer, (char *)testdata, testdatalen);
+    lequal(expectlen, (int)written);
+    lequal(expectlen, (int)ELTN_Buffer_length(buffer));
+
+    ELTN_Buffer_close(buffer);
+
+    read_all_buffer(buffer, strbuf, sizeof(strbuf));
+
+    lequal(expectlen, (int)strlen((const char *)strbuf));
+    lsequal(expect, (const char *)strbuf);
+
+    lok(ELTN_Buffer_is_empty(buffer));
+
+    ELTN_Buffer_free(buffer);
+}
+
+void buffer_write_bom8() {
+    ELTN_Buffer* buffer = ELTN_Buffer_new_with_pool(NULL);
+    const char8_t* testdata = "\ufeffhello world";
+    const char* expect = "hello world";
+    const int testdatalen = strlen(testdata);
+    const int expectlen = strlen(expect);
+    char8_t strbuf[BUFFER_SIZE];
+    size_t written;
+
+    lok(buffer != NULL);
+
+    memset(strbuf, 0, sizeof(strbuf));
+
+    lequal(0, (int)ELTN_Buffer_length(buffer));
+
+    written = ELTN_Buffer_write(buffer, (char *)testdata, testdatalen);
+    lequal(expectlen, (int)written);
+    lequal(expectlen, (int)ELTN_Buffer_length(buffer));
+
+    ELTN_Buffer_close(buffer);
+
+    read_all_buffer(buffer, strbuf, sizeof(strbuf));
+
+    lequal(expectlen, (int)strlen((const char *)strbuf));
+    lsequal(expect, (const char *)strbuf);
+
+    lok(ELTN_Buffer_is_empty(buffer));
+
+    ELTN_Buffer_free(buffer);
+}
+
+
 int main(int argc, char* argv[]) {
     lrun("test_buffer_smoke", buffer_smoke);
     lrun("test_buffer_read", buffer_read);
     lrun("test_buffer_write", buffer_write);
     lrun("test_buffer_ring_cycle", buffer_ring_cycle);
     lrun("test_buffer_ring_resize", buffer_ring_resize);
+    lrun("test_buffer_write_bom32", buffer_write_bom32);
+    lrun("test_buffer_write_bom16", buffer_write_bom16);
+    lrun("test_buffer_write_bom8", buffer_write_bom8);
     lresults();
     return lfails != 0;
 }

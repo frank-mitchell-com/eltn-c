@@ -46,7 +46,10 @@ struct ELTN_Buffer {
     int bufsize;
     char8_t* head;
     char8_t* tail;
+    size_t length;
     bool eof;
+
+    FMC_Byte_Order byteorder;
 };
 
 void ELTN_Buffer_free(ELTN_Buffer* self) {
@@ -78,17 +81,15 @@ ELTN_Buffer* ELTN_Buffer_new_with_pool(ELTN_Pool* pool) {
     memset(result->buffer, 0, INIT_BUF_SIZE);
     result->head = result->buffer;
     result->tail = result->buffer;
+    result->length = 0;
     result->eof = false;
+    result->byteorder = FMC_UNDEFINED;
 
     return result;
 }
 
-size_t ELTN_Buffer_length(ELTN_Buffer* self) {
-    if (self->head <= self->tail) {
-        return self->tail - self->head;
-    } else {
-        return self->bufsize - (self->head - self->tail);
-    }
+inline size_t ELTN_Buffer_length(ELTN_Buffer* self) {
+    return self->length;
 }
 
 ELTN_API size_t ELTN_Buffer_capacity(ELTN_Buffer* self) {
@@ -145,7 +146,7 @@ ELTN_API bool ELTN_Buffer_is_closed(ELTN_Buffer* self) {
     return self->eof;
 }
 
-static ssize_t read_into_buffer(ELTN_Buffer* self, bool first) {
+static ssize_t read_into_buffer(ELTN_Buffer* self) {
     ssize_t writeresult = 0;
     size_t readsize = 0;
     char* text = NULL;
@@ -154,12 +155,6 @@ static ssize_t read_into_buffer(ELTN_Buffer* self, bool first) {
     if (text == NULL) {
         self->eof = true;
         return -1;
-    }
-
-    if (first) {
-        /*
-         * TODO: check for Byte Order Mark and non-byte data
-         */
     }
 
     writeresult = ELTN_Buffer_write(self, text, readsize);
@@ -187,12 +182,16 @@ ssize_t ELTN_Buffer_read(ELTN_Buffer* self, ELTN_Reader reader,
     self->reader = reader;
     self->reader_state = reader_state;
 
-    return read_into_buffer(self, true);
+    return read_into_buffer(self);
 }
 
 ELTN_API ssize_t ELTN_Buffer_write(ELTN_Buffer* self, const char* text,
                                    size_t len) {
     const size_t currlen = ELTN_Buffer_length(self);
+    size_t skip = 0;
+    size_t convlen = 0;
+    char8_t* convtext = NULL;
+    bool convfree = false;
 
     if (self->eof) {
         return -1;
@@ -204,18 +203,57 @@ ELTN_API ssize_t ELTN_Buffer_write(ELTN_Buffer* self, const char* text,
             return -1;
         }
     }
-    if (self->tail + len < self->buffer + self->bufsize) {
-        memmove(self->tail, text, len);
-        self->tail += len;
+
+    if (self->byteorder == FMC_UNDEFINED) {
+        self->byteorder = C_Conv_byte_order(len, (const char8_t *)text, &skip);
+    }
+
+    /*
+     * Copying to a temporary buffer is sub-optimal in the common case of
+     * UTF-8 or ASCII input, with or without a BOM.
+     */
+    if (self->byteorder == FMC_UNKNOWN) {
+        convtext = (char8_t *) text;
+        convlen = (size_t)len;
+        convfree = false;
+    } else if (self->byteorder == FMC_BYTE) {
+        convtext = (char8_t *) (text + skip);
+        convlen = (size_t)len - skip;
+        convfree = false;
+    } else {
+        size_t bufsize = len * 4;
+        size_t nread, nwrite;
+
+        do {
+            convtext = ELTN_realloc(self->pool, convtext, bufsize);
+            memset(convtext, 0, convlen);
+            C_Conv_to_char8(self->byteorder,
+                            len, (char8_t *) (text + skip),
+                            bufsize, convtext, &nread, &nwrite);
+        } while (nread < len);
+        /*
+           nwrite includes the null character 
+         */
+        convlen = nwrite - 1;
+        convfree = true;
+    }
+
+    if (self->tail + convlen < self->buffer + self->bufsize) {
+        memmove(self->tail, convtext, convlen);
+        self->tail += convlen;
     } else {
         size_t headlen = self->buffer + self->bufsize - self->tail;
-        size_t taillen = len - headlen;
+        size_t taillen = convlen - headlen;
 
-        memmove(self->tail, text, headlen);
-        memmove(self->buffer, text + headlen, taillen);
+        memmove(self->tail, convtext, headlen);
+        memmove(self->buffer, convtext + headlen, taillen);
         self->tail = self->buffer + taillen;
     }
-    return len;
+    self->length += convlen;
+    if (convfree) {
+        ELTN_free(self->pool, convtext);
+    }
+    return convlen;
 }
 
 ELTN_API void ELTN_Buffer_close(ELTN_Buffer* self) {
@@ -229,6 +267,7 @@ static int32_t next_byte(ELTN_Buffer* self, bool consume) {
     char8_t c = *(self->head);
 
     if (consume) {
+        self->length--;
         self->head++;
         if (self->head >= self->buffer + self->bufsize) {
             self->head = self->buffer;
@@ -247,7 +286,7 @@ static bool ensure_more_bytes(ELTN_Buffer* self) {
     }
 
     while (ELTN_Buffer_length(self) == 0) {
-        if (read_into_buffer(self, false) < 0) {
+        if (read_into_buffer(self) < 0) {
             return false;
         }
     }
@@ -257,7 +296,7 @@ static bool ensure_more_bytes(ELTN_Buffer* self) {
 int32_t ELTN_Buffer_next_char(void* state, bool consume) {
     ELTN_Buffer* self = (ELTN_Buffer *) state;
 
-    if (self->head == self->tail) {
+    if (ELTN_Buffer_length(self) == 0) {
         if (!ensure_more_bytes(self)) {
             return -1;
         }

@@ -65,12 +65,18 @@ bool C_Conv_is_ascii(size_t sz, const char* buf);
  * Ideally the first bytes would contain the Byte Order Mark, but if not
  * assume the text translates to ASCII characters.
  */
-FMC_Byte_Order C_Conv_byte_order(size_t insz, char8_t * inbuf, size_t* skipptr);
+FMC_Byte_Order C_Conv_byte_order(size_t insz, const char8_t * inbuf,
+                                 size_t* skipptr);
 
+/*
+ * Convert 16 bit characters (UTF-16/UCS2) to 8-bit characters (UTF-8).
+ */
 size_t C_Conv_char16_to_8(size_t insz, const char16_t * inbuf, size_t outsz,
                           char8_t * outbuf);
 
-
+/*
+ * Convert 32-bit characters (UTF-32/UCS4) to 8-bit characters (UTF-8).
+ */
 size_t C_Conv_char32_to_8(size_t insz, const char32_t * inbuf, size_t outsz,
                           char8_t * outbuf);
 
