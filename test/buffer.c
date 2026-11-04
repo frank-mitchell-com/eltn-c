@@ -328,7 +328,7 @@ void buffer_write_bom16() {
 
 void buffer_write_bom8() {
     ELTN_Buffer* buffer = ELTN_Buffer_new_with_pool(NULL);
-    const char8_t* testdata = "\ufeffhello world";
+    const char* testdata = "\ufeffhello world";
     const char* expect = "hello world";
     const int testdatalen = strlen(testdata);
     const int expectlen = strlen(expect);
