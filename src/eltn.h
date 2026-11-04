@@ -217,7 +217,7 @@ ELTN_API const char* ELTN_Error_name(ELTN_Error error);
 /**
  * Provides the symbolic name of every ELTN_Error instance.
  *
- * @param emitter the ELTN_Error code
+ * @param error  the ELTN_Error code
  * @param strptr a pointer to a string variable that receives a newly allocated
  *               string; the caller must call `free()` on it when finished.
  * @param sizeptr a pointer to receive the length of @p strptr.
