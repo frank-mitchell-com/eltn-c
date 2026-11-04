@@ -1,3 +1,5 @@
+# TODO
+
 ## Coding
 
 ### Lexer
@@ -20,6 +22,21 @@
   - handle i/o errors from source
   - track table indexes & depth
   - track keys already used in each table
+
+- Potential added API for KEY_STRING, VALUE_STRING, DEF_NAME, *et al.*:
+  - `ELTN_Parser_string_copy(p, char *str, int len)`: copies string to
+     buffer at `str`, with the maximum length `len`.
+  - `ELTN_Parser_string_ref(p)` provides temporary buffer containing a
+     null-terminated string.
+  - `ELTN_Parser_string_len(p)` provides length of the string.
+  - `ELTN_Parser_string_alloc(p)` sets the allocator function for strings
+     returned by `ELTN_Parser_string`, superseding `malloc`
+  - Change `ELTN_Parser_string(p)` to return a pseudo-class `ELTN_String`,
+    which kicks the can down the road a bit *but* could mesh well with
+    SWIG when we get to that point.
+
+- Potential added/revised API for `ELTN_Parser_text` along the lines above.
+
 
 ### Emitter
 
@@ -71,6 +88,42 @@
 
 ### Emitter
 
+- Test each event method
+  - `ELTN_Emitter_def_name`
+  - `ELTN_Emitter_key_string`
+  - `ELTN_Emitter_key_number`
+  - `ELTN_Emitter_key_integer`
+  - `ELTN_Emitter_value_string`
+  - `ELTN_Emitter_value_number`
+  - `ELTN_Emitter_value_integer`
+  - `ELTN_Emitter_value_boolean`
+  - `ELTN_Emitter_value_nil`
+  - `ELTN_Emitter_table_start`
+  - `ELTN_Emitter_table_end`
+  - `ELTN_Emitter_comment`
+
+- Test queries
+  - `ELTN_Emitter_current_depth`
+  - `ELTN_Emitter_current_path`
+
+- Test error detection (`ELTN_Emitter_error_code`)
+  - duplicate key in table
+  - unclosed table
+  - key / def-name without value
+
+- Test `ELTN_Emitter_error_path`
+  - normal usage
+  - buffer too short
+
+- Test `ELTN_Emitter_write`
+  - pretty-printed
+  - indented
+  - matches reported length
+
+- Test `ELTN_Emitter_write_string`
+  - normal usage
+  - buffer too short
+
 - Test `ELTN_Emitter_write_file`
   - normal usage
   - error in file write
@@ -84,7 +137,6 @@
 
 - Revise tests so that even `tcc` can compile them.
   - Replace U"..." and u"..." with strings of bytes.
-  - Include byte order mark for UTF-16 / UTF-32 testing.
 
 - System tests in `eltn-test`
   - parse event file, compare values
@@ -109,9 +161,6 @@
 
 ## Launch
 
-- GitHub configuration
-  - Require pull requests (except for me)
-  - Use real version tags, as described in README
 - Announce on Lua-L list
 - Monitor and answer any questions
 - Respond to Pull Requests
@@ -120,9 +169,11 @@
 
 ### Functionality
 
-- Finish any uimplemented features, e.g.
-  - Emitter
-  - Byte Order Mark
+- Deduce character byte width and endianness by assuming the first lines
+  will be the comment "-- ELTN", etc., as suggested in Appendix B of the
+  specification.
+
+- Other design or implementation defects as needed.
 
 ### Performance
 
@@ -173,4 +224,6 @@
   - Non-blocking `ELTN_Buffer_write_nb` that simply gives up or times out
     if the source is at maximum capacity.
 
+### Lua Module
 
+- Package entire C API as a Lua module using SWIG.
