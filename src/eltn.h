@@ -260,14 +260,16 @@ ELTN_API bool ELTN_Parser_include_comments(ELTN_Parser * parser);
 ELTN_API void ELTN_Parser_set_include_comments(ELTN_Parser * parser, bool b);
 
 /**
- * The instance that handles all the parser's text input.
- * The parser completely manages its buffer.
+ * Read an entire string as a single ELTN document.
  *
  * @param parser the parser
+ * @param str the string to be parsed.
+ * @param len the length of the string.
  *
- * @result the ELTN_Buffer instance
+ * @return the total number of Unicode code points in `str`, or -1 if error.
  */
-ELTN_API ELTN_Buffer* ELTN_Parser_buffer(ELTN_Parser * parser);
+ELTN_API ssize_t ELTN_Parser_parse(ELTN_Parser * parser, const char* str,
+                                   size_t len);
 
 /**
  * Set a reader function and read the first chunk of the text to be parsed.
@@ -276,34 +278,20 @@ ELTN_API ELTN_Buffer* ELTN_Parser_buffer(ELTN_Parser * parser);
  * @param reader a function to read more bytes from a source
  * @param state  a state variable passed to `reader`, possibly its source.
  *
- * @return the initial number of bytes read, or -1 if error.
+ * @return the initial number of Unicode code points read, or -1 if error.
  */
 ELTN_API ssize_t ELTN_Parser_read(ELTN_Parser * parser, ELTN_Reader reader,
                                   void* state);
 
-/**
- * Set a reader function and read the first chunk of the text to be parsed.
- * This function assumes the string contains an entire ELTN document.
- *
- * @param parser the parser
- * @param str the string to be parsed.
- * @param len the length of the string.
- *
- * @return the total number of bytes in `str`, or -1 if error.
- */
-ELTN_API ssize_t ELTN_Parser_read_string(ELTN_Parser * parser, const char* str,
-                                         size_t len);
-
 #ifndef ELTN_NO_STDIO
 
 /**
- * Set a reader function and read the first chunk of the text to be parsed.
- * This function assumes the string contains an entire ELTN document.
+ * Set a reader function and read the first chunk of the file to be parsed.
  *
  * @param parser the parser
  * @param fp a pointer to the ELTN file to be read.
  *
- * @return the initial number of bytes read, or -1 if error.
+ * @return the initial number of Unicode code points read, or -1 if error.
  */
 ELTN_API ssize_t ELTN_Parser_read_file(ELTN_Parser * parser, FILE * fp);
 
@@ -454,7 +442,17 @@ ELTN_API unsigned int ELTN_Parser_error_column(ELTN_Parser * parser);
  */
 ELTN_API void ELTN_Parser_free(ELTN_Parser * parser);
 
-/* ------------------------ Source -------------------------------*/
+/* ------------------------ Buffer -------------------------------*/
+
+/**
+ * The instance that handles all the parser's text input.
+ * The parser completely manages its buffer.
+ *
+ * @param parser the parser
+ *
+ * @result the ELTN_Buffer instance
+ */
+ELTN_API ELTN_Buffer* ELTN_Parser_buffer(ELTN_Parser * parser);
 
 /**
  * The upper bound of bytes this object can store at once.

@@ -139,7 +139,7 @@ ELTN_API bool ELTN_Buffer_set_capacity(ELTN_Buffer* self, size_t newcap) {
 }
 
 ELTN_API bool ELTN_Buffer_is_empty(ELTN_Buffer* self) {
-    return self->head == self->tail;
+    return self->length == 0;
 }
 
 ELTN_API bool ELTN_Buffer_is_closed(ELTN_Buffer* self) {
@@ -193,23 +193,23 @@ ELTN_API ssize_t ELTN_Buffer_write(ELTN_Buffer* self, const char* text,
     char8_t* convtext = NULL;
     bool convfree = false;
 
+    /*
+     * Buffer is closed; exit immediately.
+     */
     if (self->eof) {
         return -1;
     }
-    if (currlen + len >= ELTN_Buffer_capacity(self)) {
-        bool status = ELTN_Buffer_set_capacity(self, (currlen + len) * 2);
 
-        if (!status) {
-            return -1;
-        }
-    }
-
+    /*
+     * Determine the byte order of the text, if not already inferred.
+     */
     if (self->byteorder == ELTN_UNDEFINED) {
         self->byteorder =
             ELTN_Conv_byte_order(len, (const char8_t *)text, &skip);
     }
 
     /*
+     * Convert the string to ASCII/UTF-8 if needed.
      * Copying to a temporary buffer is sub-optimal in the common case of
      * UTF-8 or ASCII input, with or without a BOM.
      */
@@ -239,6 +239,24 @@ ELTN_API ssize_t ELTN_Buffer_write(ELTN_Buffer* self, const char* text,
         convfree = true;
     }
 
+    /*
+     * Increase capacity based on the CONVERTED string.
+     * In multithreaded variant, would block until buffer read instead.
+     */
+    if (currlen + convlen >= ELTN_Buffer_capacity(self)) {
+        bool status = ELTN_Buffer_set_capacity(self, (currlen + convlen) * 2);
+
+        if (!status) {
+            if (convfree) {
+                ELTN_free(self->pool, convtext);
+            }
+            return -1;
+        }
+    }
+
+    /*
+     * Add new bytes to the ring buffer.
+     */
     if (self->tail + convlen < self->buffer + self->bufsize) {
         memmove(self->tail, convtext, convlen);
         self->tail += convlen;

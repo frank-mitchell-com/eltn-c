@@ -65,6 +65,7 @@
   - forcing a read of an empty Source
   - allocator failure?
   - test for byte order mark with swapped bytes
+  - incremental reading of a string (or other in-memory construct)
 
 - Test `ELTN_Lexer`
   - long comments (more)

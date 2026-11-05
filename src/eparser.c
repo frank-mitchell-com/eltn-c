@@ -139,18 +139,18 @@ ELTN_API void ELTN_Parser_set_include_comments(ELTN_Parser* self, bool b) {
     self->include_comments = b;
 }
 
-ELTN_API ssize_t ELTN_Parser_read(ELTN_Parser* self, ELTN_Reader reader,
-                                  void* state) {
-    return ELTN_Buffer_read(self->buffer, reader, state);
-}
-
-ELTN_API ssize_t ELTN_Parser_read_string(ELTN_Parser* self, const char* text,
-                                         size_t len) {
+ELTN_API ssize_t ELTN_Parser_parse(ELTN_Parser* self, const char* text,
+                                   size_t len) {
     ELTN_Buffer* src = ELTN_Parser_buffer(self);
     ssize_t result = ELTN_Buffer_write(src, text, len);
 
     ELTN_Buffer_close(src);
     return result;
+}
+
+ELTN_API ssize_t ELTN_Parser_read(ELTN_Parser* self, ELTN_Reader reader,
+                                  void* state) {
+    return ELTN_Buffer_read(self->buffer, reader, state);
 }
 
 ELTN_API bool ELTN_Parser_has_next(ELTN_Parser* self) {

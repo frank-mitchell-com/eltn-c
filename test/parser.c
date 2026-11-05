@@ -29,7 +29,7 @@ void read_string(ELTN_Parser* parser, const char* data) {
     size_t datalen = strlen(data);
     ssize_t actual;
 
-    actual = ELTN_Parser_read_string(parser, data, datalen);
+    actual = ELTN_Parser_parse(parser, data, datalen);
     lequal((int)datalen, (int)actual);
 }
 
