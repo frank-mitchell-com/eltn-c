@@ -96,7 +96,7 @@ void resize() {
 
     lequal(8, (int)Key_Set_size(ks));
 
-    lok(Key_Set_capacity(ks) > oldcap);
+    lok((int)Key_Set_capacity(ks) > oldcap);
 
     lok(Key_Set_has_key(ks, KEY_SET_STRING, "foo", 3));
     lok(Key_Set_has_key(ks, KEY_SET_STRING, "bar", 3));
@@ -110,7 +110,7 @@ void resize() {
     Key_Set_free(ks);
 }
 
-int main(int argc, char* argv[]) {
+int main() {
     lrun("test_keyset_happy_path", happy_path);
     lrun("test_keyset_iterator", iterator);
     lrun("test_keyset_resize", resize);

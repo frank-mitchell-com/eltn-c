@@ -142,7 +142,7 @@ static uint_fast64_t hash_string(const char* str, size_t len) {
     int_fast64_t hash_value = 0;
     int_fast64_t p_pow = 1;
 
-    for (int i = 0; i < len; i++) {
+    for (size_t i = 0; i < len; i++) {
         char c = str[i];
 
         hash_value = (hash_value + (c - 'a' + 1) * p_pow) % m;
@@ -150,6 +150,7 @@ static uint_fast64_t hash_string(const char* str, size_t len) {
     }
     return 0x7FFFFFFF & hash_value;
 }
+
 static uint_fast64_t hash_double(double val) {
     return hash_string((const char *)&val, sizeof(double) / sizeof(char));
 }
@@ -287,7 +288,7 @@ Key_Set_Iterator* Key_Set_iterator(Key_Set* self) {
         ELTN_free(self->pool, iter);
         return NULL;
     }
-    size_t j = 0;
+    ssize_t j = 0;
 
     for (size_t i = 0; i < self->arraysize && j < iter->length; i++) {
         Key* p = &(self->array[i]);
@@ -306,7 +307,7 @@ Key_Set_Iterator* Key_Set_iterator(Key_Set* self) {
 void Key_Set_Iterator_free(Key_Set_Iterator* self) {
     ELTN_Pool* h = self->pool;
 
-    for (size_t i = 0; i < self->length; i++) {
+    for (ssize_t i = 0; i < self->length; i++) {
         ELTN_free(h, self->keys[i].str);
     }
     ELTN_free(h, self->keys);

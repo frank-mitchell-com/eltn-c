@@ -336,7 +336,7 @@ void complex_document() {
     ELTN_Parser_free(parser);
 }
 
-int main(int argc, char* argv[]) {
+int main() {
     lrun("test_empty_document", empty_document);
     lrun("test_empty_table", empty_table);
     lrun("test_single_definition", single_definition);

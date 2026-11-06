@@ -288,7 +288,7 @@ static bool token_buffer_ends_with_long_bracket(ELTN_Lexer* self, size_t depth) 
     if (token_buffer_ends_with(self, "]")) {
         bracket[0] = ']';
         bufidx++;
-        for (int i = 0; i < depth; i++) {
+        for (size_t i = 0; i < depth; i++) {
             bracket[bufidx] = '=';
             bufidx++;
         }
@@ -352,7 +352,7 @@ static ELTN_Token parse_long_string(ELTN_Lexer* self) {
     return past_close ? ELTN_TOKEN_LONG_STRING : ELTN_TOKEN_INVALID;
 }
 
-static ELTN_Token parse_number(ELTN_Lexer* self, char32_t curr) {
+static ELTN_Token parse_number(ELTN_Lexer* self) {
     /*
      * This is a very cheap way to parse a number, but I'm short on time.
      */
@@ -441,7 +441,7 @@ ELTN_Token ELTN_Lexer_next_token(ELTN_Lexer* self, int* lineptr, int* colptr) {
         /*
            start of number 
          */
-        return parse_number(self, curr);
+        return parse_number(self);
     case '-':
         /*
            start of number "-" or start of comment "--" 
@@ -452,7 +452,7 @@ ELTN_Token ELTN_Lexer_next_token(ELTN_Lexer* self, int* lineptr, int* colptr) {
             return consume_until_end_of_comment(self);
         } else if (ELTN_is_digit(curr) || curr == '.') {
             token_buffer_append(self, curr);
-            return parse_number(self, curr);
+            return parse_number(self);
         } else {
             self->pushback = true;
             return ELTN_TOKEN_INVALID;

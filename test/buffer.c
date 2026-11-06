@@ -72,7 +72,7 @@ static int Test_Reader(void* ud, char** strptr, size_t* sizeptr) {
 }
 
 static void read_all_buffer(ELTN_Buffer* buffer, char8_t* outbuf, size_t outlen) {
-    int i = 0;
+    size_t i = 0;
 
     for (; i < outlen; i++) {
         int32_t curr = ELTN_Buffer_next_char(buffer, true);
@@ -87,6 +87,10 @@ static void read_all_buffer(ELTN_Buffer* buffer, char8_t* outbuf, size_t outlen)
     }
 }
 
+/*
+ * Commented out until it is needed again ...
+ */
+/*
 static void print_string(const char* label, const char8_t* str, size_t len,
                          size_t charsize) {
     char outbuf[4096];
@@ -131,6 +135,7 @@ static void print_string(const char* label, const char8_t* str, size_t len,
     }
     printf("*** DEBUG %s: %s\n", label, outbuf);
 }
+*/
 
 void buffer_smoke() {
     ELTN_Buffer* buffer = ELTN_Buffer_new_with_pool(NULL);
@@ -358,7 +363,7 @@ void buffer_write_bom8() {
 }
 
 
-int main(int argc, char* argv[]) {
+int main() {
     lrun("test_buffer_smoke", buffer_smoke);
     lrun("test_buffer_read", buffer_read);
     lrun("test_buffer_write", buffer_write);

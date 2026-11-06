@@ -72,11 +72,11 @@ static ELTN_Lexer* set_up(Mock_Source* self, const char* data) {
 static void assert_token(ELTN_Lexer* lexer,
                          ELTN_Token exptoken,
                          const char* exptokstr, int expline, int expcol) {
-    ELTN_Token token;
-    char* tokstr;
-    size_t toklen;
-    int line;
-    int col;
+    ELTN_Token token = ELTN_TOKEN_INVALID;
+    char* tokstr = "";
+    size_t toklen = 0;
+    int line = 0;
+    int col = 0;
 
     token = ELTN_Lexer_next_token(lexer, &line, &col);
     ELTN_Lexer_token_string(lexer, &tokstr, &toklen);
@@ -562,7 +562,7 @@ void lexer_numbers_bad() {
 /*
  * Main function: runs all the tests
  */
-int main(int argc, char* argv[]) {
+int main() {
     lrun("test_lexer_semicolon", lexer_semicolon);
     lrun("test_lexer_equals", lexer_equals);
     lrun("test_lexer_comma", lexer_comma);

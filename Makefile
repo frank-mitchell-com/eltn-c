@@ -28,7 +28,7 @@ SHLIB_ALIAS=$(LIBDIR)/lib$(LIBNAME).so
 SONAME=lib$(LIBNAME).so.$(LIBVERSION)
 DLL=$(LIBDIR)/$(LIBNAME)$(DLLVERSION).dll
 
-CFLAGS=-g -Wall -fPIC
+CFLAGS=-g -Wall -Wextra -fPIC -std=c11
 IFLAGS= -I $(SRCDIR) -I $(TESTDIR)
 LFLAGS=-L$(LIBDIR) -l$(LIBNAME)-$(LIBVERSION) -lm
 
@@ -69,7 +69,7 @@ $(LIB): $(OBJECTS) | $(LIBDIR)
 	ar rcs $(LIB) $^ 
 
 $(TESTDIR)/test-%: $(TESTDIR)/%.c $(LIB) $(HEADERS) $(TESTINCS)
-	$(CC) -static -g -O0 $(IFLAGS) -o $@ $< $(LFLAGS)
+	$(CC) -static $(CFLAGS) -O0 $(IFLAGS) -o $@ $< $(LFLAGS)
 	./$@
 
 $(SHLIB): $(OBJECTS)

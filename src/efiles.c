@@ -83,8 +83,8 @@ ELTN_API ssize_t ELTN_Parser_read_file(ELTN_Parser* self, FILE* fp) {
     return ELTN_Parser_read(self, File_Reader, fp);
 }
 
-static ssize_t File_Writer(void* state, const char* text, size_t size,
-                           int* errptr) {
+static int File_Writer(void* state, const char* text, size_t size,
+                       size_t* nwriteptr) {
     /*
        TODO: implement 
      */
@@ -95,7 +95,6 @@ ELTN_API ssize_t ELTN_Emitter_write_file(ELTN_Emitter* self, FILE* fp) {
     if (fp == NULL) {
         return -1;
     }
-
     return ELTN_Emitter_write(self, File_Writer, fp);
 }
 

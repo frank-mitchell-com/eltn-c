@@ -33,7 +33,7 @@
 #define MIN(a, b)   (((a) > (b)) ? (b) : (a))
 
 bool ELTN_Conv_is_ascii(size_t sz, const char* buf) {
-    for (int i = 0; i < sz; i++) {
+    for (size_t i = 0; i < sz; i++) {
         if (buf[i] < 0 || buf[i] > 127) {
             return false;
         }
@@ -115,14 +115,14 @@ inline static void swap_bytes(char8_t* a, char8_t* b) {
 }
 
 static void flip_bytes_4(size_t length, char8_t* buf) {
-    for (int i = 0; i < length; i += 4) {
+    for (size_t i = 0; i < length; i += 4) {
         swap_bytes(buf + i + 1, buf + i + 4);
         swap_bytes(buf + i + 2, buf + i + 3);
     }
 }
 
 static void flip_bytes_2(size_t length, char8_t* buf) {
-    for (int i = 0; i < length; i += 2) {
+    for (size_t i = 0; i < length; i += 2) {
         swap_bytes(buf + i + 1, buf + i + 2);
     }
 }
@@ -187,12 +187,18 @@ static char32_t surrogate_pair(char16_t high, char16_t low) {
 
 static int read_utf16(char32_t* cpp, size_t insz, const char16_t* inbuf,
                       size_t i) {
+    if (i > insz) {
+        return 0;
+    }
     char32_t cp = inbuf[i];
 
     if (!is_surrogate(cp)) {
         (*cpp) = cp;
         return 1;
     } else {
+        if (i + 1 > insz) {
+            return 0;
+        }
         char32_t cp2 = inbuf[i + 1];
 
         if (is_high_surrogate(cp) && is_low_surrogate(cp2)) {
@@ -210,8 +216,8 @@ static int read_utf16(char32_t* cpp, size_t insz, const char16_t* inbuf,
 
 size_t ELTN_Conv_char16_to_8(size_t insz, const char16_t* inbuf, size_t outsz,
                              char8_t* outbuf) {
-    int i = 0;
-    int j = 0;
+    size_t i = 0;
+    size_t j = 0;
 
     while (i < insz && j < outsz) {
         char32_t cp;

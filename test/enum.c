@@ -35,7 +35,7 @@ void error_name() {
     lsequal("ELTN_ERR_DUPLICATE_KEY", ELTN_Error_name(ELTN_ERR_DUPLICATE_KEY));
 }
 
-int main(int argc, char* argv[]) {
+int main() {
     lrun("test_event_name", event_name);
     lrun("test_error_name", error_name);
     lresults();

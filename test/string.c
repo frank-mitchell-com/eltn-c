@@ -108,7 +108,7 @@ void string_unicode_escapes() {
  * TODO: test comments and long comments.
  */
 
-int main(int argc, char* argv[]) {
+int main() {
     lrun("test_string_quotes", string_quotes);
     lrun("test_string_simple_escapes", string_simple_escapes);
     lrun("test_string_escaped_newline", string_escaped_newline);

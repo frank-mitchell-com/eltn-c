@@ -120,31 +120,30 @@ typedef void* (*ELTN_Alloc)(void* state, void* ptr, size_t size);
  * @param state (in) a reference used to read data, such as a file pointer
  * @param strptr (out) a pointer to the string read, as memory to be `free()`d,
  *               or NULL if at end of the document.
- * @param sizeptr (out) a pointer to the size of the string read,
- *                or to 0 at the end of the document.
+ * @param nreadptr (out) a pointer to the number of bytes read,
+ *                 or to 0 at the end of the document.
  *
  * @return 0 under normal circumstances;
  *         the value of `errno` at the time of a system error,
  *         or a negative value in case of an application error.
  */
-typedef int (*ELTN_Reader)(void* state, char** strptr, size_t* sizeptr);
+typedef int (*ELTN_Reader)(void* state, char** strptr, size_t* nreadptr);
 
 /**
  * A callback the {@link ELTN_Emitter} uses to write an ELTN document.
  * During normal operation, the function should return
  *
- * @param state a reference used to write data, such a file pointer.
- * @param text the next block of text to write
- * @param size the number of bytes in `text`
- * @param errptr on a system error, the function captures the value of
- *               `errno` at the time of error and returns it through
- *               this pointer.  If an error occurs but not a system
- *               error, it should contain a negative value.
+ * @param state (in) a reference used to write data, such a file pointer.
+ * @param text (in) the next block of text to write
+ * @param size (in) the number of bytes in `text`
+ * @param nwriteptr (out) a pointer to the number of bytes written.
  *
- * @return the number of bytes written, or a negative number if an error.
+ * @return 0 under normal conditions,
+ *         the value of `errno` at the time of a system error,
+ *         or a negative value in case of an application error.
  */
-typedef ssize_t(*ELTN_Writer) (void* state, const char* text, size_t size,
-                               int* errptr);
+typedef int (*ELTN_Writer) (void* state, const char* text, size_t size,
+                            size_t* nwriteptr);
 
 /**
  * Events returned by {@link ELTN_Parser_event} as the caller advances

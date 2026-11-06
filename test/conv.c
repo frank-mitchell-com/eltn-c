@@ -51,8 +51,8 @@ static void* stralloc(void* buf, size_t len, size_t csiz) {
     return result;
 }
 
-static int append_ascii(unsigned int c, char buf[], int j) {
-    int len = j;
+static size_t append_ascii(unsigned int c, char buf[], size_t j) {
+    size_t len = j;
 
     if (c <= 0x7F) {
         buf[j] = (char)c;
@@ -65,7 +65,7 @@ static int append_ascii(unsigned int c, char buf[], int j) {
 }
 
 static size_t ucslen(const char32_t* ucs) {
-    int len = 0;
+    size_t len = 0;
 
     while (ucs[len] != 0) {
         len++;
@@ -78,32 +78,20 @@ static const char* ucs2cstr(const char32_t* ucs) {
     size_t wlen = ucslen(ucs);
     size_t len = 0;
 
-    memset(buf, 0, STRBUFSIZ);
-    for (int i = 0; i < wlen; i++) {
+    memset(buf, 0, STRBUFSIZ * sizeof(char));
+    for (size_t i = 0; i < wlen; i++) {
         len = append_ascii(ucs[i], buf, len);
     }
     return (char *)stralloc(buf, len, sizeof(char));
 }
 
 static size_t jcslen(const char16_t* jcs) {
-    int len = 0;
+    size_t len = 0;
 
     while (jcs[len] != 0) {
         len++;
     }
     return len;
-}
-
-static const char* jcs2cstr(const char16_t* jcs) {
-    char buf[STRBUFSIZ];
-    size_t jlen = jcslen(jcs);
-    size_t len = 0;
-
-    memset(buf, 0, STRBUFSIZ);
-    for (int i = 0; i < jlen; i++) {
-        len = append_ascii(jcs[i], buf, len);
-    }
-    return (char *)stralloc(buf, len, sizeof(char));
 }
 
 static const char* utf2cstr(const char* utf8str) {
@@ -112,7 +100,7 @@ static const char* utf2cstr(const char* utf8str) {
     size_t len = 0;
 
     memset(buf, 0, STRBUFSIZ);
-    for (int i = 0; i < slen; i++) {
+    for (size_t i = 0; i < slen; i++) {
         len = append_ascii(0xFF & utf8str[i], buf, len);
     }
     return (char *)stralloc(buf, len, sizeof(char));
@@ -122,19 +110,19 @@ static const char32_t* cstr2ucs(const char* s) {
     char32_t buf[STRBUFSIZ];
     char escbuf[ESCBUFSIZ];
     size_t len = strlen(s);
-    int i = 0;
-    int j = 0;
+    size_t i = 0;
+    size_t j = 0;
 
-    memset(buf, 0, STRBUFSIZ);
+    memset(buf, 0, STRBUFSIZ*sizeof(char32_t));
     while (i < len) {
         if (s[i] != '\\') {
             buf[j++] = (char32_t) s[i++];
         } else {
             memset(escbuf, 0, ESCBUFSIZ);
-            for (int k = 0; i < len && k < ESCBUFSIZ - 1; k++) {
+            for (size_t k = 0; i < len && k < ESCBUFSIZ - 1; k++) {
                 escbuf[k] = s[i++];
                 if (escbuf[k] == '}') {
-                    unsigned int cp = 0;
+                    char32_t cp = 0;
 
                     escbuf[k + 1] = '\0';
                     sscanf(escbuf, "\\u{%x}", &cp);
@@ -147,18 +135,8 @@ static const char32_t* cstr2ucs(const char* s) {
             }
         }
     }
-    lequal((int)len, i);
+    lequal((int)len, (int)i);
     return (char32_t *) stralloc(buf, len, sizeof(char32_t));
-}
-
-static const char8_t* ucs2utf8(const char32_t* s) {
-    size_t bsz;
-    char8_t buf[STRBUFSIZ];
-
-    memset(buf, 0, sizeof(buf));
-    bsz = ELTN_Conv_char32_to_8(ucslen(s), s, STRBUFSIZ, buf);
-
-    return (char8_t *) stralloc(buf, bsz, sizeof(char8_t));
 }
 
 static int free_strings() {
@@ -196,7 +174,7 @@ static void string_smoke() {
     const char32_t* expect2 = U"tsch\u00fc\u00df!";
 
     lequal((int)ucslen(expect2), (int)ucslen(actual2));
-    for (int i = 0; i < 7; i++) {
+    for (size_t i = 0; i < 7; i++) {
         lequal(expect2[i], actual2[i]);
     }
 
@@ -275,7 +253,7 @@ static void conv_is_ascii() {
 }
 
 
-int main(int argc, char* argv[]) {
+int main() {
     lrun("test_code_smoke", string_smoke);
     lrun("cconv_is_ascii", conv_is_ascii);
     lrun("cconv_char32_to_8", conv_char32_to_8);
