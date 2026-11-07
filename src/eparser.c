@@ -46,7 +46,8 @@ struct Stack_Frame {
     unsigned int depth;         /* should match the current depth */
 
     ELTN_Event key_type;
-    const char* key;
+    char8_t* key;
+    size_t keylen;
     unsigned int last_ikey;     /* for values without explicit keys */
     Key_Set* keys;
     Stack_Frame* next;
@@ -124,6 +125,13 @@ ELTN_API void ELTN_Parser_free(ELTN_Parser* self) {
     ELTN_Buffer_free(self->buffer);
     ELTN_Lexer_free(self->lexer);
     ELTN_free(h, self->string);
+    while (self->top != NULL) {
+        Stack_Frame *oldframe = self->top;
+        self->top = oldframe->next;
+        Key_Set_free(oldframe->keys);
+        ELTN_free(h, oldframe->key);
+        ELTN_free(h, oldframe);
+    }
     ELTN_free(h, self);
     ELTN_Pool_release(&h);
 }
@@ -165,17 +173,19 @@ ELTN_API ELTN_Event ELTN_Parser_event(ELTN_Parser* self) {
 }
 
 ELTN_API unsigned int ELTN_Parser_depth(ELTN_Parser* self) {
-    /*
-     * TODO: take from depth of context stack
-     */
     return self->depth;
 }
 
 ELTN_API void ELTN_Parser_current_key(ELTN_Parser* self, ELTN_Event* typeptr,
-                                      char** strptr, size_t lenptr) {
-    /*
-     * TODO: take from context stack
-     */
+                                      char** strptr, size_t* lenptr) {
+    if (self->top == NULL) {
+        *typeptr = self->event;
+        ELTN_new_string(strptr, lenptr, "", 0);
+    } else {
+        // Take this, never-nesters!
+        *typeptr = self->top->key_type;
+        ELTN_new_string(strptr, lenptr, self->top->key, self->top->keylen);
+    }
 }
 
 ELTN_API void ELTN_Parser_text(ELTN_Parser* self, char** strptr,
@@ -264,6 +274,59 @@ ELTN_API unsigned int ELTN_Parser_error_column(ELTN_Parser* self) {
 }
 
 /* ------------------------- ACTUAL PARSING CODE ------------------------ */
+
+static void push_stack_frame(ELTN_Parser* self) {
+    Stack_Frame* newframe = (Stack_Frame*)ELTN_alloc(self->pool, sizeof(Stack_Frame));
+    newframe->depth = self->depth;
+    newframe->key_type = self->event;
+    newframe->key = NULL;
+    newframe->keylen = 0;
+    newframe->last_ikey = 0;
+    newframe->keys = Key_Set_new_with_pool(self->pool);
+    newframe->next = self->top;
+
+    self->top = newframe;
+}
+
+static void set_current_key(ELTN_Parser* self, ELTN_Event type,
+                            const char8_t* key, size_t keylen) {
+    Stack_Frame* topframe = self->top;
+    Key_Type ktype; 
+
+    switch (type) {
+        case ELTN_KEY_NUMBER:
+        case ELTN_KEY_INTEGER:
+            ktype = KEY_SET_NUMBER;
+            break;
+        default:
+            ktype = KEY_SET_STRING;
+            break;
+    }
+    ELTN_free(self->pool, topframe->key);
+    topframe->key_type = type;
+    topframe->keylen = keylen;
+    topframe->key = ELTN_alloc(self->pool, keylen + 2);
+    memset(topframe->key, 0, keylen + 2);
+    memcpy(topframe->key, key, keylen);
+
+    Key_Set_add_key(topframe->keys, ktype, key, keylen);
+}
+
+static void set_current_key_from_string(ELTN_Parser* self, ELTN_Event type) {
+    set_current_key(self, type, self->string, self->string_len);
+}
+
+static void pop_stack_frame(ELTN_Parser* self) {
+    Stack_Frame* oldframe = self->top;
+    if (oldframe == NULL) {
+        return;
+    }
+    self->top = oldframe->next;
+    
+    ELTN_free(self->pool, oldframe->key);
+    Key_Set_free(oldframe->keys);
+    ELTN_free(self->pool, oldframe);
+}
 
 static void signal_out_of_memory(ELTN_Parser* self) {
     self->event = ELTN_ERROR;
@@ -416,9 +479,18 @@ static bool expect_value(ELTN_Parser* self, ELTN_Token token) {
         set_event(self, token, ELTN_VALUE_NIL);
         return true;
     case ELTN_TOKEN_CURLY_OPEN:
+        ELTN_Event oldevent = self->event;
+        char* oldstr;
+        size_t oldstrlen;
+
+        ELTN_new_string(&oldstr, &oldstrlen, (const char*) self->string,
+                        self->string_len);
+
         set_event(self, token, ELTN_TABLE_START);
-        // TODO: Push a new frame on the stack
         self->depth++;
+        push_stack_frame(self);
+        set_current_key(self, oldevent, oldstr, oldstrlen);
+        free(oldstr);
         return true;
     default:
         return false;
@@ -430,6 +502,7 @@ static bool expect_new_entry(ELTN_Parser* self, ELTN_Token token, int* lineptr,
                              int* colptr) {
     if (token == ELTN_TOKEN_NAME) {
         set_event(self, token, ELTN_KEY_STRING);
+        set_current_key_from_string(self, ELTN_KEY_STRING);
         return true;
     }
     if (token == ELTN_TOKEN_SQUARE_OPEN) {
@@ -437,24 +510,21 @@ static bool expect_new_entry(ELTN_Parser* self, ELTN_Token token, int* lineptr,
         token = next_token(self, lineptr, colptr);
         switch (token) {
         case ELTN_TOKEN_STRING:
+        case ELTN_TOKEN_LONG_STRING:
             set_event(self, token, ELTN_KEY_STRING);
+            set_current_key_from_string(self, ELTN_KEY_STRING);
             break;
         case ELTN_TOKEN_NUMBER:
             set_event(self, token, ELTN_KEY_NUMBER);
+            set_current_key_from_string(self, ELTN_KEY_NUMBER);
             break;
         case ELTN_TOKEN_INTEGER:
             set_event(self, token, ELTN_KEY_INTEGER);
-            break;
-        case ELTN_TOKEN_LONG_STRING:
-            set_event(self, token, ELTN_KEY_STRING);
+            set_current_key_from_string(self, ELTN_KEY_INTEGER);
             break;
         default:
             return false;
         }
-        /*
-         * TODO: update current_key on the current stack frame.
-         */
-
         token = next_token(self, lineptr, colptr);
         if (token != ELTN_TOKEN_SQUARE_CLOSE) {
             signal_error(self, token, *lineptr, *colptr);
@@ -464,10 +534,15 @@ static bool expect_new_entry(ELTN_Parser* self, ELTN_Token token, int* lineptr,
     // Maybe values with implicit indexes?
     bool result = expect_value(self, token);
 
-    if (result) {
-        /*
-         * TODO: Update stack frame with implicit index.
-         */
+    if (result && self->top != NULL) {
+        char keystr[128];
+        size_t keylen;
+
+        self->top->last_ikey++;
+
+        keylen = snprintf(keystr, sizeof(keystr), "%d", self->top->last_ikey);
+
+        set_current_key(self, ELTN_KEY_INTEGER, keystr, keylen);
     }
     return result;
 }
@@ -475,8 +550,8 @@ static bool expect_new_entry(ELTN_Parser* self, ELTN_Token token, int* lineptr,
 static bool expect_table_start(ELTN_Parser* self, ELTN_Token token) {
     if (token == ELTN_TOKEN_CURLY_OPEN) {
         set_event(self, token, ELTN_TABLE_START);
-        // TODO: Push a new frame on the stack
         self->depth++;
+        push_stack_frame(self);
         return true;
     }
     return false;
@@ -485,8 +560,8 @@ static bool expect_table_start(ELTN_Parser* self, ELTN_Token token) {
 static bool expect_table_end(ELTN_Parser* self, ELTN_Token token) {
     if (token == ELTN_TOKEN_CURLY_CLOSE && self->depth > 0) {
         set_event(self, token, ELTN_TABLE_END);
-        // TODO: Pop a frame off the stack
         self->depth--;
+        pop_stack_frame(self);
         return true;
     }
     return false;
@@ -499,10 +574,10 @@ static bool expect_new_definition(ELTN_Parser* self, ELTN_Token token,
     }
     if (token == ELTN_TOKEN_NAME) {
         set_event(self, token, ELTN_DEF_NAME);
-        /*
-         * TODO: if no definition level frame on the stack, push one on.
-         * TODO: set the current_key (sic) on the zero-depth frame.
-         */
+        if (self->top == NULL) {
+            push_stack_frame(self);
+        }
+        set_current_key_from_string(self, ELTN_DEF_NAME);
         return true;
     }
     return false;

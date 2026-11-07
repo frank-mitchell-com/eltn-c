@@ -20,7 +20,6 @@
   - handle illegal sequences of tokens
   - handle illegal tokens
   - handle i/o errors from source
-  - track table indexes & depth
   - track keys already used in each table
 
 - Potential added API for KEY_STRING, VALUE_STRING, DEF_NAME, *et al.*:
@@ -30,8 +29,8 @@
      null-terminated string.
   - `ELTN_Parser_string_len(p)` provides length of the string.
   - `ELTN_String_alloc(pool, str, len) -> ref` alllocates strings from
-     `ELTN_Parser_string` and `ELTN_Parser_text`, to be freed by
-     `ELTN_String_free(ref)`.  Implies string tagged with pool, if any.
+    `ELTN_Parser_string` and `ELTN_Parser_text`, to be freed by
+    `ELTN_String_free(ref)`.  Implies string tagged with pool, if any.
   - Change `ELTN_Parser_string(p)` to return a pseudo-class `ELTN_String`,
     which kicks the can down the road a bit *but* could mesh well with
     SWIG when we get to that point.

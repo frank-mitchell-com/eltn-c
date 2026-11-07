@@ -335,13 +335,15 @@ ELTN_API unsigned int ELTN_Parser_depth(ELTN_Parser * parser);
  * Upon `ELTN_TABLE_START`
  * this is the string value of the key about to be set by the new Table.
  * Upon `ELTN_TABLE_END`
+ * The value is undefined upon `ELTN_STREAM_START`, `ELTN_STREAM_END`,
+ * and `ELTN_ERROR`.
  * this is the string value of the key just set by the completed Table.
  * In all other cases, this value is the most recent key or definition
  * name encountered.
  */
 ELTN_API void ELTN_Parser_current_key(ELTN_Parser * parser,
                                       ELTN_Event * typeptr, char** strptr,
-                                      size_t lenptr);
+                                      size_t* lenptr);
 
 
 /**

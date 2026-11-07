@@ -25,7 +25,7 @@
 #include "minctest.h"
 #include "eltn.h"
 
-void read_string(ELTN_Parser* parser, const char* data) {
+void parse_string(ELTN_Parser* parser, const char* data) {
     size_t datalen = strlen(data);
     ssize_t actual;
 
@@ -61,10 +61,27 @@ void assert_text_equal(ELTN_Parser* parser, const char* expected) {
     }
 }
 
+void assert_current_key_equal(ELTN_Parser* parser, ELTN_Event expectedtype,
+                              const char* expected) {
+    ELTN_Event type = ELTN_ERROR;
+    char* str = NULL;
+    size_t len = 0;
+
+    ELTN_Parser_current_key(parser, &type, &str, &len);
+
+    lequal(expectedtype, type);
+    lok(str != NULL);
+    lequal((int)strlen(expected), (int)len);
+    if (str != NULL) {
+        lsequal(expected, str);
+        free(str);
+    }
+}
+
 void empty_document() {
     ELTN_Parser* parser = ELTN_Parser_new();
 
-    read_string(parser, "");
+    parse_string(parser, "");
 
     lequal(ELTN_STREAM_START, ELTN_Parser_event(parser));
     lok(ELTN_Parser_has_next(parser));
@@ -79,7 +96,7 @@ void empty_document() {
 void empty_table() {
     ELTN_Parser* parser = ELTN_Parser_new();
 
-    read_string(parser, "{}");
+    parse_string(parser, "{}");
 
     lequal(ELTN_STREAM_START, ELTN_Parser_event(parser));
     lequal(0, (int)ELTN_Parser_depth(parser));
@@ -106,7 +123,7 @@ void empty_table() {
 void single_definition() {
     ELTN_Parser* parser = ELTN_Parser_new();
 
-    read_string(parser, "key = true");
+    parse_string(parser, "key = true");
 
     lequal(ELTN_STREAM_START, ELTN_Parser_event(parser));
     lok(ELTN_Parser_has_next(parser));
@@ -133,7 +150,7 @@ void single_definition() {
 void simple_table() {
     ELTN_Parser* parser = ELTN_Parser_new();
 
-    read_string(parser, "{key=true}");
+    parse_string(parser, "{key=true}");
 
     lequal(ELTN_STREAM_START, ELTN_Parser_event(parser));
     lok(ELTN_Parser_has_next(parser));
@@ -171,7 +188,7 @@ void complex_document() {
 
     ELTN_Parser* parser = ELTN_Parser_new();
 
-    read_string(parser, data);
+    parse_string(parser, data);
 
     lequal(ELTN_STREAM_START, ELTN_Parser_event(parser));
     lok(ELTN_Parser_has_next(parser));
@@ -336,12 +353,116 @@ void complex_document() {
     ELTN_Parser_free(parser);
 }
 
+void document_with_levels() {
+    const char* data =
+        "toplevel = { array = { 4, 6, 8 } , key = \"value\" }";
+
+    ELTN_Parser* parser = ELTN_Parser_new();
+
+    parse_string(parser, data);
+
+    lequal(ELTN_STREAM_START, ELTN_Parser_event(parser));
+    lequal(0, (int)ELTN_Parser_depth(parser));
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_DEF_NAME, ELTN_Parser_event(parser));
+    assert_text_equal(parser, "toplevel");
+    assert_string_equal(parser, "toplevel");
+    lequal(0, (int)ELTN_Parser_depth(parser));
+    assert_current_key_equal(parser, ELTN_DEF_NAME, "toplevel");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_TABLE_START, ELTN_Parser_event(parser));
+    lequal(1, (int)ELTN_Parser_depth(parser));
+    assert_current_key_equal(parser, ELTN_DEF_NAME, "toplevel");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_KEY_STRING, ELTN_Parser_event(parser));
+    assert_text_equal(parser, "array");
+    assert_string_equal(parser, "array");
+    lequal(1, (int)ELTN_Parser_depth(parser));
+    assert_current_key_equal(parser, ELTN_KEY_STRING, "array");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_TABLE_START, ELTN_Parser_event(parser));
+    lequal(2, (int)ELTN_Parser_depth(parser));
+    assert_current_key_equal(parser, ELTN_KEY_STRING, "array");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_VALUE_NUMBER, ELTN_Parser_event(parser));
+    assert_text_equal(parser, "4");
+    assert_string_equal(parser, "4");
+    lequal(4, (int)ELTN_Parser_integer(parser));
+    lequal(2, (int)ELTN_Parser_depth(parser));
+    assert_current_key_equal(parser, ELTN_KEY_INTEGER, "1");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_VALUE_NUMBER, ELTN_Parser_event(parser));
+    assert_text_equal(parser, "6");
+    assert_string_equal(parser, "6");
+    lequal(6, (int)ELTN_Parser_integer(parser));
+    lequal(2, (int)ELTN_Parser_depth(parser));
+    assert_current_key_equal(parser, ELTN_KEY_INTEGER, "2");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_VALUE_NUMBER, ELTN_Parser_event(parser));
+    assert_text_equal(parser, "8");
+    assert_string_equal(parser, "8");
+    lequal(8, (int)ELTN_Parser_integer(parser));
+    lequal(2, (int)ELTN_Parser_depth(parser));
+    assert_current_key_equal(parser, ELTN_KEY_INTEGER, "3");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_TABLE_END, ELTN_Parser_event(parser));
+    lequal(1, (int)ELTN_Parser_depth(parser));
+    assert_current_key_equal(parser, ELTN_KEY_STRING, "array");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_KEY_STRING, ELTN_Parser_event(parser));
+    assert_text_equal(parser, "key");
+    assert_string_equal(parser, "key");
+    lequal(1, (int)ELTN_Parser_depth(parser));
+    assert_current_key_equal(parser, ELTN_KEY_STRING, "key");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_VALUE_STRING, ELTN_Parser_event(parser));
+    assert_text_equal(parser, "\"value\"");
+    assert_string_equal(parser, "value");
+    lequal(1, (int)ELTN_Parser_depth(parser));
+    assert_current_key_equal(parser, ELTN_KEY_STRING, "key");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_TABLE_END, ELTN_Parser_event(parser));
+    lequal(0, (int)ELTN_Parser_depth(parser));
+    assert_current_key_equal(parser, ELTN_DEF_NAME, "toplevel");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_STREAM_END, ELTN_Parser_event(parser));
+    lequal(0, (int)ELTN_Parser_depth(parser));
+    lok(!ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_free(parser);
+}
+
 int main() {
     lrun("test_empty_document", empty_document);
     lrun("test_empty_table", empty_table);
     lrun("test_single_definition", single_definition);
     lrun("test_simple_table", simple_table);
     lrun("test_complex_document", complex_document);
+    lrun("test_document_with_levels", document_with_levels);
     lresults();
     return lfails != 0;
 }
