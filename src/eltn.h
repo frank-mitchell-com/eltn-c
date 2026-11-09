@@ -540,7 +540,8 @@ ELTN_API ELTN_Emitter* ELTN_Emitter_new_with_pool(ELTN_Pool * pool);
  * The following events should define value or table.
  *
  * @param emitter the emitter
- * @param n the null-terminated identifier of the definition name.
+ * @param n the null-terminated ASCII identifier in the definition table.
+ *          See the specification for characters allowed in a definition name.
  *
  * @return `true` if no error, `false` if an error occurred.
  *          See ELTN_Emitter_error_code() for the error.
@@ -553,7 +554,7 @@ ELTN_API bool ELTN_Emitter_def_name(ELTN_Emitter * emitter, const char* n);
  * The following events should define a value or table.
  *
  * @param emitter the emitter
- * @param s the string used as a key in the enclosing table,
+ * @param s the ASCII/UTF-8 string used as a key in the enclosing table,
  *          which may include nulls.
  * @param len the length of @p s in bytes.
  *
@@ -595,14 +596,14 @@ ELTN_API bool ELTN_Emitter_key_integer(ELTN_Emitter * emitter, int i);
 /**
  * Add a `VALUE_STRING` event to the ELTN document.
  * This defines a string value within a table.
- * It usually precedes one of the `KEY_`... events; if not, it
+ * It usually precedes `DEF_NAME` or one of the `KEY_`... events; if not, it
  * will be assigned an integer key according to its order in the
  * table.
  * The next events should either define a new key, define a new
  * value or table, or close the existing table.
  *
  * @param emitter the emitter
- * @param s the string value in the enclosing table,
+ * @param s the ASCII/UTF-8 string value in the enclosing table or definition table,
  *          which may include nulls.
  * @param len the length of @p s in bytes.
  *
@@ -615,14 +616,14 @@ ELTN_API bool ELTN_Emitter_value_string(ELTN_Emitter * emitter, const char* s,
 /**
  * Add a `VALUE_NUMBER` event to the ELTN document.
  * This defines a number value within a table.
- * It usually precedes one of the `KEY_`... events; if not, it
+ * It usually precedes `DEF_NAME` one of the `KEY_`... events; if not, it
  * will be assigned an integer key according to its order in the
  * table.
  * The next events should either define a new key, define a new
  * value or table, or close the existing table.
  *
  * @param emitter the emitter
- * @param n the number value in the enclosing table
+ * @param n the number value in the enclosing table or definition table
  * @param sigfigs the number of significant figures to include in @p n,
  *                in case of floating point rounding errors.
  *
@@ -635,14 +636,14 @@ ELTN_API bool ELTN_Emitter_value_number(ELTN_Emitter * emitter, double n,
 /**
  * Add a `VALUE_NUMBER` event to the ELTN document.
  * This defines an integer value within a table.
- * It usually precedes one of the `KEY_`... events; if not, it
+ * It usually precedes `DEF_NAME` or one of the `KEY_`... events; if not, it
  * will be assigned an integer key according to its order in the
  * table.
  * The next events should either define a new key, define a new
  * value or table, or close the existing table.
  *
  * @param emitter the emitter
- * @param i the integer value in the enclosing table
+ * @param i the integer value in the enclosing table or definition table
  *
  * @return `true` if no error, `false` if an error occurred.
  *          See ELTN_Emitter_error_code() for the error.
@@ -652,14 +653,14 @@ ELTN_API bool ELTN_Emitter_value_integer(ELTN_Emitter * emitter, int i);
 /**
  * Add a `VALUE_TRUE` or `VALUE_FALSE` event to the ELTN document.
  * This defines a string value within a table.
- * It usually precedes one of the `KEY_`... events; if not, it
+ * It usually precedes `DEF_NAME` or one of the `KEY_`... events; if not, it
  * will be assigned an integer key according to its order in the
  * table.
  * The next events should either define a new key, define a new
  * value or table, or close the existing table.
  *
  * @param emitter the emitter
- * @param b the boolean value in the enclosing table
+ * @param b the boolean value in the enclosing table or definition table
  *
  * @return `true` if no error, `false` if an error occurred.
  *          See ELTN_Emitter_error_code() for the error.
@@ -669,7 +670,7 @@ ELTN_API bool ELTN_Emitter_value_boolean(ELTN_Emitter * emitter, bool b);
 /**
  * Add a `VALUE_NIL` event to the ELTN document.
  * This defines a nil value within a table.
- * It usually precedes one of the `KEY_`... events; if not, it
+ * It usually precedes `DEF_NAME` or one of the `KEY_`... events; if not, it
  * will be assigned an integer key according to its order in the
  * table.
  * The next events should either define a new key, define a new
@@ -685,7 +686,7 @@ ELTN_API bool ELTN_Emitter_value_nil(ELTN_Emitter * emitter);
 /**
  * Add a `TABLE_START` event to the ELTN document.
  * This opens a new table within a table.
- * It usually precedes one of the `KEY_`... events; if not, it
+ * It usually precedes `DEF_NAME` or one of the `KEY_`... events; if not, it
  * will be assigned an integer key according to its order in the
  * table.
  * If issued at the start of the document, it replaces the
