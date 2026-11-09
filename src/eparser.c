@@ -126,7 +126,8 @@ ELTN_API void ELTN_Parser_free(ELTN_Parser* self) {
     ELTN_Lexer_free(self->lexer);
     ELTN_free(h, self->string);
     while (self->top != NULL) {
-        Stack_Frame *oldframe = self->top;
+        Stack_Frame* oldframe = self->top;
+
         self->top = oldframe->next;
         Key_Set_free(oldframe->keys);
         ELTN_free(h, oldframe->key);
@@ -185,7 +186,7 @@ ELTN_API void ELTN_Parser_current_key(ELTN_Parser* self, ELTN_Event* typeptr,
         // Take this, never-nesters!
         *typeptr = self->top->key_type;
         ELTN_new_string(strptr, lenptr,
-                        (const char*)self->top->key, self->top->keylen);
+                        (const char *)self->top->key, self->top->keylen);
     }
 }
 
@@ -277,7 +278,8 @@ ELTN_API unsigned int ELTN_Parser_error_column(ELTN_Parser* self) {
 /* ------------------------- ACTUAL PARSING CODE ------------------------ */
 
 static void push_stack_frame(ELTN_Parser* self) {
-    Stack_Frame* newframe = (Stack_Frame*)ELTN_alloc(self->pool, sizeof(Stack_Frame));
+    Stack_Frame* newframe =
+        (Stack_Frame *) ELTN_alloc(self->pool, sizeof(Stack_Frame));
     newframe->depth = self->depth;
     newframe->key_type = self->event;
     newframe->key = NULL;
@@ -292,16 +294,16 @@ static void push_stack_frame(ELTN_Parser* self) {
 static void set_current_key(ELTN_Parser* self, ELTN_Event type,
                             const char8_t* key, size_t keylen) {
     Stack_Frame* topframe = self->top;
-    Key_Type ktype; 
+    Key_Type ktype;
 
     switch (type) {
-        case ELTN_KEY_NUMBER:
-        case ELTN_KEY_INTEGER:
-            ktype = KEY_SET_NUMBER;
-            break;
-        default:
-            ktype = KEY_SET_STRING;
-            break;
+    case ELTN_KEY_NUMBER:
+    case ELTN_KEY_INTEGER:
+        ktype = KEY_SET_NUMBER;
+        break;
+    default:
+        ktype = KEY_SET_STRING;
+        break;
     }
     ELTN_free(self->pool, topframe->key);
     topframe->key_type = type;
@@ -319,11 +321,12 @@ static void set_current_key_from_string(ELTN_Parser* self, ELTN_Event type) {
 
 static void pop_stack_frame(ELTN_Parser* self) {
     Stack_Frame* oldframe = self->top;
+
     if (oldframe == NULL) {
         return;
     }
     self->top = oldframe->next;
-    
+
     ELTN_free(self->pool, oldframe->key);
     Key_Set_free(oldframe->keys);
     ELTN_free(self->pool, oldframe);
@@ -369,7 +372,7 @@ static void capture_token_buffer(ELTN_Parser* self) {
     size_t toklen = 0;
 
     ELTN_Lexer_token_string(self->lexer, &tokstr, &toklen);
-    ELTN_free(self-> pool, self->text);
+    ELTN_free(self->pool, self->text);
     self->text = tokstr;
     self->text_len = toklen;
 }
@@ -484,7 +487,9 @@ static bool expect_value(ELTN_Parser* self, ELTN_Token token) {
         set_event(self, token, ELTN_VALUE_NIL);
         return true;
     case ELTN_TOKEN_CURLY_OPEN:
-        /* Save previous key to set as the current key */
+        /*
+         * Save previous key to set as the current key
+         */
         oldevent = self->event;
         ELTN_copy_string(self->pool, &oldstr, &oldstrlen, self->string,
                          self->string_len);

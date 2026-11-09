@@ -103,7 +103,7 @@ static bool init_key(Key_Set* self, Key* value, Key_Type t,
     value->len = len;
     value->str = ustr;
     if (t == KEY_SET_NUMBER) {
-        value->num = strtod((const char*)ustr, NULL);
+        value->num = strtod((const char *)ustr, NULL);
     } else {
         value->num = 0.0;
     }
@@ -124,8 +124,8 @@ static bool is_equal(Key* a, Key* b) {
     case KEY_SET_NUMBER:
         return a->num == b->num;
     case KEY_SET_STRING:
-        return a->len == b->len && strncmp((const char*)a->str,
-                                           (const char*)b->str, a->len) == 0;
+        return a->len == b->len && strncmp((const char *)a->str,
+                                           (const char *)b->str, a->len) == 0;
     default:
         return false;
     }

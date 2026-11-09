@@ -122,7 +122,7 @@ void ELTN_free(ELTN_Pool* h, void* ptr) {
 
 void ELTN_copy_string(ELTN_Pool* h, char8_t** strptr, size_t* lenptr,
                       const char8_t* srcstr, size_t srclen) {
-    char8_t* dest = (char8_t *)ELTN_alloc(h, srclen + 1);
+    char8_t* dest = (char8_t *) ELTN_alloc(h, srclen + 1);
 
     memset(dest, 0, srclen + 1);
     memcpy(dest, srcstr, srclen);
@@ -132,8 +132,8 @@ void ELTN_copy_string(ELTN_Pool* h, char8_t** strptr, size_t* lenptr,
 
 void ELTN_new_string(char** strptr, size_t* lenptr,
                      const char* srcstr, size_t srclen) {
-    ELTN_copy_string(NULL, (char8_t**)strptr, lenptr,
-                     (const char8_t*)srcstr, srclen);
+    ELTN_copy_string(NULL, (char8_t **) strptr, lenptr,
+                     (const char8_t *)srcstr, srclen);
 }
 
 void ELTN_free_string(char* str) {

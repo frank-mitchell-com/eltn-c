@@ -29,7 +29,8 @@
 #include "estring.h"
 
 
-static const char8_t* append_octal(const char8_t* instr, char8_t* buf, size_t* buflenptr) {
+static const char8_t* append_octal(const char8_t* instr, char8_t* buf,
+                                   size_t* buflenptr) {
     char8_t tmpbuf[4] = { '\0', '\0', '\0', '\0' };
     const char8_t* result = instr;
 
@@ -41,12 +42,13 @@ static const char8_t* append_octal(const char8_t* instr, char8_t* buf, size_t* b
             break;
         }
     }
-    buf[*buflenptr] = (char8_t)(0xFF & strtol((const char *)tmpbuf, NULL, 8));
+    buf[*buflenptr] = (char8_t) (0xFF & strtol((const char *)tmpbuf, NULL, 8));
     (*buflenptr) += 1;
     return result;
 }
 
-static const char8_t* append_hex(const char8_t* instr, char8_t* buf, size_t* buflenptr) {
+static const char8_t* append_hex(const char8_t* instr, char8_t* buf,
+                                 size_t* buflenptr) {
     char8_t tmpbuf[3];
 
     if (!ELTN_is_hexdigit(instr[0]) || !ELTN_is_hexdigit(instr[1])) {
@@ -58,7 +60,7 @@ static const char8_t* append_hex(const char8_t* instr, char8_t* buf, size_t* buf
     tmpbuf[0] = instr[0];
     tmpbuf[1] = instr[1];
     tmpbuf[2] = '\0';
-    buf[*buflenptr] = (char8_t)(0xFF & strtol((const char*)tmpbuf, NULL, 16));
+    buf[*buflenptr] = (char8_t) (0xFF & strtol((const char *)tmpbuf, NULL, 16));
     (*buflenptr) += 1;
     return instr + 2;
 }
@@ -67,7 +69,8 @@ static const char8_t* append_unicode(const char8_t* instr,
                                      char8_t* buf, size_t* buflenptr) {
     char32_t cp;
     size_t cplen;
-    const char8_t* closebracket = (const char8_t*)strchr((const char*)instr, '}');
+    const char8_t* closebracket =
+        (const char8_t *)strchr((const char *)instr, '}');
 
     if (*instr != '{' || closebracket == NULL) {
         /*

@@ -101,7 +101,8 @@ void ELTN_Lexer_token_string(ELTN_Lexer* self, char8_t** strptr, size_t* lenptr)
     if (strptr && lenptr) {
         size_t toklen = self->token_buffer_tail - self->token_buffer;
 
-        ELTN_copy_string(self->pool, strptr, lenptr, self->token_buffer, toklen);
+        ELTN_copy_string(self->pool, strptr, lenptr, self->token_buffer,
+                         toklen);
     }
 }
 
