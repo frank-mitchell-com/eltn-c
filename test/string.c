@@ -23,83 +23,84 @@
 #include <string.h>
 #include "minctest.h"
 #include "estring.h"
+#include "econv.h"
 
 void string_quotes() {
-    char* str;
+    char8_t* str;
     size_t len;
     const char* data = "\"this is a quoted string\"";
     const char* expect = "this is a quoted string";
 
-    ELTN_unescape_quoted_string(NULL, data, strlen(data), &str, &len);
+    ELTN_unescape_quoted_string(NULL, (const char8_t*)data, strlen(data), &str, &len);
     lequal((int)strlen(expect), (int)len);
-    lsequal(expect, str);
+    lsequal(expect, (const char*)str);
 }
 
 void string_simple_escapes() {
-    char* str;
+    char8_t* str;
     size_t len;
     const char* data = "'\\'\\a\\b\\f\\n\\r\\t\\v\\\\\\\"'";
     const char* expect = "'\a\b\f\n\r\t\v\\\"";
 
-    ELTN_unescape_quoted_string(NULL, data, strlen(data), &str, &len);
+    ELTN_unescape_quoted_string(NULL, (const char8_t*)data, strlen(data), &str, &len);
     lequal((int)strlen(expect), (int)len);
-    lsequal(expect, str);
+    lsequal(expect, (const char*)str);
 }
 
 void string_escaped_newline() {
-    char* str;
+    char8_t* str;
     size_t len;
     const char* data = "'this text has \\\nan escaped newline'";
     const char* expect = "this text has \nan escaped newline";
 
-    ELTN_unescape_quoted_string(NULL, data, strlen(data), &str, &len);
+    ELTN_unescape_quoted_string(NULL, (const char8_t *)data, strlen(data), &str, &len);
     lequal((int)strlen(expect), (int)len);
-    lsequal(expect, str);
+    lsequal(expect, (const char*)str);
 }
 
 void string_backslash_z() {
-    char* str;
+    char8_t* str;
     size_t len;
     const char* data = "'this text has \\z \n\t     no newline'";
     const char* expect = "this text has no newline";
 
-    ELTN_unescape_quoted_string(NULL, data, strlen(data), &str, &len);
+    ELTN_unescape_quoted_string(NULL, (const char8_t *)data, strlen(data), &str, &len);
     lequal((int)strlen(expect), (int)len);
-    lsequal(expect, str);
+    lsequal(expect, (const char*)str);
 }
 
 void string_hex_escapes() {
-    char* str;
+    char8_t* str;
     size_t len;
     const char* data = "'this text had \\x68\\x65\\x78 escapes\\x2e\\x2e\\x2E'";
     const char* expect = "this text had hex escapes...";
 
-    ELTN_unescape_quoted_string(NULL, data, strlen(data), &str, &len);
+    ELTN_unescape_quoted_string(NULL, (const char8_t *)data, strlen(data), &str, &len);
     lequal((int)strlen(expect), (int)len);
-    lsequal(expect, str);
+    lsequal(expect, (const char*)str);
 }
 
 void string_octal_escapes() {
-    char* str;
+    char8_t* str;
     size_t len;
     const char* data = "'this text had octal escapes\\56\\056\\056\\0'";
     const char* expect = "this text had octal escapes...\0";
 
-    ELTN_unescape_quoted_string(NULL, data, strlen(data), &str, &len);
+    ELTN_unescape_quoted_string(NULL, (const char8_t *)data, strlen(data), &str, &len);
     lequal((int)strlen(expect) + 1, (int)len);
-    lsequal(expect, str);
+    lsequal(expect, (const char*)str);
 }
 
 void string_unicode_escapes() {
-    char* str;
+    char8_t* str;
     size_t len;
     const char* data =
         "'this text has unicode:\\u{a}\\u{A9}\\u{1e9e}\\u{1047F}'";
     const char* expect = "this text has unicode:\n\u00A9\u1e9e\U0001047F";
 
-    ELTN_unescape_quoted_string(NULL, data, strlen(data), &str, &len);
+    ELTN_unescape_quoted_string(NULL, (const char8_t *)data, strlen(data), &str, &len);
     lequal((int)strlen(expect), (int)len);
-    lsequal(expect, str);
+    lsequal(expect, (const char*)str);
 }
 
 /*

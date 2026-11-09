@@ -29,9 +29,9 @@
 #include "estring.h"
 
 
-static const char* append_octal(const char* instr, char* buf, size_t* buflenptr) {
-    char tmpbuf[4] = { '\0', '\0', '\0', '\0' };
-    const char* result = instr;
+static const char8_t* append_octal(const char8_t* instr, char8_t* buf, size_t* buflenptr) {
+    char8_t tmpbuf[4] = { '\0', '\0', '\0', '\0' };
+    const char8_t* result = instr;
 
     for (int i = 0; i < 3; i++) {
         if (ELTN_is_octdigit(*result)) {
@@ -41,13 +41,13 @@ static const char* append_octal(const char* instr, char* buf, size_t* buflenptr)
             break;
         }
     }
-    buf[*buflenptr] = (char)(0xFF & strtol(tmpbuf, NULL, 8));
+    buf[*buflenptr] = (char8_t)(0xFF & strtol((const char *)tmpbuf, NULL, 8));
     (*buflenptr) += 1;
     return result;
 }
 
-static const char* append_hex(const char* instr, char* buf, size_t* buflenptr) {
-    char tmpbuf[3];
+static const char8_t* append_hex(const char8_t* instr, char8_t* buf, size_t* buflenptr) {
+    char8_t tmpbuf[3];
 
     if (!ELTN_is_hexdigit(instr[0]) || !ELTN_is_hexdigit(instr[1])) {
         /*
@@ -58,16 +58,16 @@ static const char* append_hex(const char* instr, char* buf, size_t* buflenptr) {
     tmpbuf[0] = instr[0];
     tmpbuf[1] = instr[1];
     tmpbuf[2] = '\0';
-    buf[*buflenptr] = (char)(0xFF & strtol(tmpbuf, NULL, 16));
+    buf[*buflenptr] = (char8_t)(0xFF & strtol((const char*)tmpbuf, NULL, 16));
     (*buflenptr) += 1;
     return instr + 2;
 }
 
-static const char* append_unicode(const char* instr,
-                                  char* buf, size_t* buflenptr) {
+static const char8_t* append_unicode(const char8_t* instr,
+                                     char8_t* buf, size_t* buflenptr) {
     char32_t cp;
     size_t cplen;
-    const char* closebracket = strchr(instr, '}');
+    const char8_t* closebracket = (const char8_t*)strchr((const char*)instr, '}');
 
     if (*instr != '{' || closebracket == NULL) {
         /*
@@ -75,21 +75,20 @@ static const char* append_unicode(const char* instr,
          */
         return instr;
     }
-    cp = (char32_t) strtol(instr + 1, NULL, 16);
+    cp = (char32_t) strtol((const char *)(instr + 1), NULL, 16);
 
-    cplen = ELTN_Conv_codepoint_to_char8(cp, *buflenptr,
-                                         (char8_t *) buf + (*buflenptr));
+    cplen = ELTN_Conv_codepoint_to_char8(cp, *buflenptr, buf + (*buflenptr));
     (*buflenptr) += cplen;
     return closebracket + 1;
 }
 
 void ELTN_unescape_quoted_string(ELTN_Pool* h,
-                                 const char* instr, const size_t inlen,
-                                 char** outstrptr, size_t* outlenptr) {
-    char* bufptr = ELTN_alloc(h, inlen);
+                                 const char8_t* instr, const size_t inlen,
+                                 char8_t** outstrptr, size_t* outlenptr) {
+    char8_t* bufptr = ELTN_alloc(h, inlen);
     size_t buflen = 0;
-    const char* index = instr;
-    char quotechar = '\0';
+    const char8_t* index = instr;
+    char8_t quotechar = '\0';
 
     if (bufptr == NULL) {
         *outstrptr = NULL;
@@ -194,23 +193,23 @@ void ELTN_unescape_quoted_string(ELTN_Pool* h,
 }
 
 void ELTN_unquote_long_string(ELTN_Pool* h,
-                              const char* instr, const size_t inlen,
-                              char** outstrptr, size_t* outlenptr) {
+                              const char8_t* instr, const size_t inlen,
+                              char8_t** outstrptr, size_t* outlenptr) {
     /*
        TODO: Wrong! 
      */
-    ELTN_new_string(outstrptr, outlenptr, instr, inlen);
+    ELTN_copy_string(h, outstrptr, outlenptr, instr, inlen);
 }
 
-void ELTN_trim_comment(ELTN_Pool* h, const char* instr, const size_t inlen,
-                       char** outstrptr, size_t* outlenptr) {
+void ELTN_trim_comment(ELTN_Pool* h, const char8_t* instr, const size_t inlen,
+                       char8_t** outstrptr, size_t* outlenptr) {
     /*
        TODO: Wrong! 
      */
-    ELTN_new_string(outstrptr, outlenptr, instr, inlen);
+    ELTN_copy_string(h, outstrptr, outlenptr, instr, inlen);
 }
 
-bool ELTN_is_newline(const char* str, size_t len) {
+bool ELTN_is_newline(const char8_t* str, size_t len) {
     if (len >= 1 && str[0] == '\n') {
         /*
          * Unix-style newline.

@@ -61,7 +61,7 @@ void ELTN_Lexer_set_char_source(ELTN_Lexer * self, ELTN_Char_Source fcn,
 
 ELTN_Token ELTN_Lexer_next_token(ELTN_Lexer * self, int* lineptr, int* colptr);
 
-void ELTN_Lexer_token_string(ELTN_Lexer * self, char** strptr, size_t* lenptr);
+void ELTN_Lexer_token_string(ELTN_Lexer * self, char8_t** strptr, size_t* lenptr);
 
 void ELTN_Lexer_free(ELTN_Lexer * self);
 

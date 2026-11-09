@@ -27,6 +27,7 @@
 
 #include <stdint.h>
 #include "eltn.h"
+#include "econv.h"
 
 /**
  * Allocate a new chunk of memory from the pool, and zero it out.
@@ -42,6 +43,12 @@ void* ELTN_realloc(ELTN_Pool * h, void* ptr, size_t size);
  * Free a chunk of memory.
  */
 void ELTN_free(ELTN_Pool * h, void* ptr);
+
+/**
+ * Create a copy of a string using an appropriate allocator.
+ */
+void ELTN_copy_string(ELTN_Pool * h, char8_t** strptr, size_t* lenptr,
+                      const char8_t* srcstr, size_t srclen);
 
 /**
  * Create a copy of a string using the default allocator.

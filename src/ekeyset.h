@@ -27,6 +27,7 @@
 
 #include <stdint.h>
 #include "eltn.h"
+#include "econv.h"
 
 typedef struct Key_Set Key_Set;
 
@@ -44,9 +45,9 @@ size_t Key_Set_size(Key_Set * s);
 
 size_t Key_Set_capacity(Key_Set * s);
 
-bool Key_Set_has_key(Key_Set * s, Key_Type t, const char* str, size_t len);
+bool Key_Set_has_key(Key_Set * s, Key_Type t, const char8_t* str, size_t len);
 
-bool Key_Set_add_key(Key_Set * s, Key_Type t, const char* str, size_t len);
+bool Key_Set_add_key(Key_Set * s, Key_Type t, const char8_t* str, size_t len);
 
 Key_Set_Iterator* Key_Set_iterator(Key_Set * s);
 

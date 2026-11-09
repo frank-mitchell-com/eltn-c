@@ -37,7 +37,7 @@
 typedef struct Key {
     Key_Type type;
     size_t len;
-    char* str;
+    char8_t* str;
     double num;
 } Key;
 
@@ -89,20 +89,21 @@ void Key_Set_free(Key_Set* self) {
 }
 
 static bool init_key(Key_Set* self, Key* value, Key_Type t,
-                     const char* str, size_t len) {
-    char* cstr = ELTN_alloc(self->pool, len);
+                     const char8_t* str, size_t len) {
+    char8_t* ustr = ELTN_alloc(self->pool, len + 1);
 
-    if (cstr == NULL) {
+    if (ustr == NULL) {
         return false;
     }
 
-    strncpy(cstr, str, len);
+    memset(ustr, 0, len + 1);
+    memcpy(ustr, str, len);
 
     value->type = t;
     value->len = len;
-    value->str = cstr;
+    value->str = ustr;
     if (t == KEY_SET_NUMBER) {
-        value->num = strtod(cstr, NULL);
+        value->num = strtod((const char*)ustr, NULL);
     } else {
         value->num = 0.0;
     }
@@ -123,13 +124,14 @@ static bool is_equal(Key* a, Key* b) {
     case KEY_SET_NUMBER:
         return a->num == b->num;
     case KEY_SET_STRING:
-        return a->len == b->len && strncmp(a->str, b->str, a->len) == 0;
+        return a->len == b->len && strncmp((const char*)a->str,
+                                           (const char*)b->str, a->len) == 0;
     default:
         return false;
     }
 }
 
-static uint_fast64_t hash_string(const char* str, size_t len) {
+static uint_fast64_t hash_string(const char8_t* str, size_t len) {
     /*
      * Vibe-coded from
      * <https://cp-algorithms.com/string/string-hashing.html>
@@ -143,7 +145,7 @@ static uint_fast64_t hash_string(const char* str, size_t len) {
     int_fast64_t p_pow = 1;
 
     for (size_t i = 0; i < len; i++) {
-        char c = str[i];
+        char8_t c = str[i];
 
         hash_value = (hash_value + (c - 'a' + 1) * p_pow) % m;
         p_pow = (p_pow * p) % m;
@@ -152,7 +154,7 @@ static uint_fast64_t hash_string(const char* str, size_t len) {
 }
 
 static uint_fast64_t hash_double(double val) {
-    return hash_string((const char *)&val, sizeof(double) / sizeof(char));
+    return hash_string((const char8_t *)&val, sizeof(double) / sizeof(char));
 }
 
 static uint_fast64_t hashvalue(const Key* value) {
@@ -172,7 +174,7 @@ size_t Key_Set_capacity(Key_Set* self) {
     return self->arraysize;
 }
 
-bool Key_Set_has_key(Key_Set* self, Key_Type t, const char* str, size_t len) {
+bool Key_Set_has_key(Key_Set* self, Key_Type t, const char8_t* str, size_t len) {
     bool result;
     Key value;
 
@@ -252,7 +254,7 @@ static void resize(Key_Set* self) {
     ELTN_free(self->pool, oldarray);
 }
 
-bool Key_Set_add_key(Key_Set* self, Key_Type t, const char* str, size_t len) {
+bool Key_Set_add_key(Key_Set* self, Key_Type t, const char8_t* str, size_t len) {
     Key value;
 
     if (t == KEY_SET_EMPTY || Key_Set_has_key(self, t, str, len)) {
@@ -328,6 +330,6 @@ void Key_Set_Iterator_string(Key_Set_Iterator* self, char** strptr,
     if (self->index <= self->length && strptr != NULL && lenptr != NULL) {
         Key* p = &(self->keys[self->index]);
 
-        ELTN_new_string(strptr, lenptr, p->str, p->len);
+        ELTN_new_string(strptr, lenptr, (const char *)p->str, p->len);
     }
 }

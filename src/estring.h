@@ -28,17 +28,18 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "eltn.h"
+#include "econv.h"
 
 void ELTN_unescape_quoted_string(ELTN_Pool * h,
-                                 const char* instr, const size_t inlen,
-                                 char** outstrptr, size_t* lenptr);
+                                 const char8_t* instr, const size_t inlen,
+                                 char8_t** outstrptr, size_t* lenptr);
 
 void ELTN_unquote_long_string(ELTN_Pool * h,
-                              const char* instr, const size_t inlen,
-                              char** outstrptr, size_t* lenptr);
+                              const char8_t* instr, const size_t inlen,
+                              char8_t** outstrptr, size_t* lenptr);
 
-void ELTN_trim_comment(ELTN_Pool * h, const char* instr, const size_t inlen,
-                       char** outstrptr, size_t* lenptr);
+void ELTN_trim_comment(ELTN_Pool * h, const char8_t* instr, const size_t inlen,
+                       char8_t** outstrptr, size_t* lenptr);
 
 bool ELTN_is_space(uint32_t c);
 

@@ -73,7 +73,7 @@ static void assert_token(ELTN_Lexer* lexer,
                          ELTN_Token exptoken,
                          const char* exptokstr, int expline, int expcol) {
     ELTN_Token token = ELTN_TOKEN_INVALID;
-    char* tokstr = "";
+    char8_t* tokstr = (char8_t*)"";
     size_t toklen = 0;
     int line = 0;
     int col = 0;
@@ -85,10 +85,10 @@ static void assert_token(ELTN_Lexer* lexer,
                (int)exptoken, exptokstr, expline, expcol, tokstr, tokstr[0]);
     }
     lequal(exptoken, token);
-    lsequal(exptokstr, tokstr);
+    lsequal(exptokstr, (char*)tokstr);
     lequal(expline, line);
     lequal(expcol, col);
-    ELTN_free_string(tokstr);
+    ELTN_free(NULL, tokstr);
 }
 
 void lexer_semicolon() {
@@ -426,7 +426,7 @@ void lexer_long_comment_2() {
     ELTN_Lexer* lexer;
     Mock_Source source;
     const char* data =
-        "--[[test]]\n" "--[=[test]=]\n" "--[==[\n" "test]==]\n" "\"the end\"\n";
+        "--[[test]]\n--[=[test]=]\n--[==[\ntest]==]\n\"the end\"\n";
 
     lexer = set_up(&source, data);
 
@@ -469,16 +469,20 @@ void lexer_long_string() {
     ELTN_Lexer* lexer;
     Mock_Source source;
     const char* data =
+        "  [==[ this is a long string\n"
+        "it ends when I feel like it.\n"
+        "[[Not yet.]]\nOK, how about now ]==]  ";
+    const char* expected =
         "[==[ this is a long string\n"
         "it ends when I feel like it.\n"
-        "[[Not yet.]]\n" "OK, how about now ]==]";
+        "[[Not yet.]]\nOK, how about now ]==]";
 
     lexer = set_up(&source, data);
 
     lok(lexer != NULL);
 
-    assert_token(lexer, ELTN_TOKEN_LONG_STRING, data, 1, 1);
-    assert_token(lexer, ELTN_TOKEN_EOF, "", 4, 23);
+    assert_token(lexer, ELTN_TOKEN_LONG_STRING, expected, 1, 3);
+    assert_token(lexer, ELTN_TOKEN_EOF, "", 4, 25);
 
     ELTN_Lexer_free(lexer);
 }

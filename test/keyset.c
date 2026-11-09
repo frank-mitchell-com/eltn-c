@@ -26,13 +26,13 @@
 void happy_path() {
     Key_Set* ks = Key_Set_new_with_pool(NULL);
 
-    lok(Key_Set_add_key(ks, KEY_SET_STRING, "foo", 3));
-    lok(Key_Set_add_key(ks, KEY_SET_NUMBER, "123", 3));
-    lok(Key_Set_add_key(ks, KEY_SET_STRING, "bar", 4));
+    lok(Key_Set_add_key(ks, KEY_SET_STRING, (const char8_t *)"foo", 3));
+    lok(Key_Set_add_key(ks, KEY_SET_NUMBER, (const char8_t *)"123", 3));
+    lok(Key_Set_add_key(ks, KEY_SET_STRING, (const char8_t *)"bar", 4));
     lequal(3, (int)Key_Set_size(ks));
 
-    lok(Key_Set_has_key(ks, KEY_SET_NUMBER, "123", 3));
-    lok(!Key_Set_has_key(ks, KEY_SET_STRING, "quux", 4));
+    lok(Key_Set_has_key(ks, KEY_SET_NUMBER, (const char8_t *)"123", 3));
+    lok(!Key_Set_has_key(ks, KEY_SET_STRING, (const char8_t *)"quux", 4));
 
     Key_Set_free(ks);
 }
@@ -40,9 +40,9 @@ void happy_path() {
 void iterator() {
     Key_Set* ks = Key_Set_new_with_pool(NULL);
 
-    lok(Key_Set_add_key(ks, KEY_SET_STRING, "foo", 3));
-    lok(Key_Set_add_key(ks, KEY_SET_NUMBER, "123", 3));
-    lok(Key_Set_add_key(ks, KEY_SET_NUMBER, "45.6", 4));
+    lok(Key_Set_add_key(ks, KEY_SET_STRING, (const char8_t *)"foo", 3));
+    lok(Key_Set_add_key(ks, KEY_SET_NUMBER, (const char8_t *)"123", 3));
+    lok(Key_Set_add_key(ks, KEY_SET_NUMBER, (const char8_t *)"45.6", 4));
     lequal(3, (int)Key_Set_size(ks));
 
     Key_Set_Iterator* ksi = Key_Set_iterator(ks);
@@ -85,27 +85,27 @@ void resize() {
 
     lok(oldcap > 0);
 
-    lok(Key_Set_add_key(ks, KEY_SET_STRING, "foo", 3));
-    lok(Key_Set_add_key(ks, KEY_SET_STRING, "bar", 3));
-    lok(Key_Set_add_key(ks, KEY_SET_STRING, "baz", 3));
-    lok(Key_Set_add_key(ks, KEY_SET_STRING, "quux", 4));
-    lok(Key_Set_add_key(ks, KEY_SET_STRING, "one fish", 8));
-    lok(Key_Set_add_key(ks, KEY_SET_STRING, "two fish", 8));
-    lok(Key_Set_add_key(ks, KEY_SET_STRING, "red fish", 3));
-    lok(Key_Set_add_key(ks, KEY_SET_STRING, "blue fish", 9));
+    lok(Key_Set_add_key(ks, KEY_SET_STRING, (const char8_t *)"foo", 3));
+    lok(Key_Set_add_key(ks, KEY_SET_STRING, (const char8_t *)"bar", 3));
+    lok(Key_Set_add_key(ks, KEY_SET_STRING, (const char8_t *)"baz", 3));
+    lok(Key_Set_add_key(ks, KEY_SET_STRING, (const char8_t *)"quux", 4));
+    lok(Key_Set_add_key(ks, KEY_SET_STRING, (const char8_t *)"one fish", 8));
+    lok(Key_Set_add_key(ks, KEY_SET_STRING, (const char8_t *)"two fish", 8));
+    lok(Key_Set_add_key(ks, KEY_SET_STRING, (const char8_t *)"red fish", 3));
+    lok(Key_Set_add_key(ks, KEY_SET_STRING, (const char8_t *)"blue fish", 9));
 
     lequal(8, (int)Key_Set_size(ks));
 
     lok((int)Key_Set_capacity(ks) > oldcap);
 
-    lok(Key_Set_has_key(ks, KEY_SET_STRING, "foo", 3));
-    lok(Key_Set_has_key(ks, KEY_SET_STRING, "bar", 3));
-    lok(Key_Set_has_key(ks, KEY_SET_STRING, "baz", 3));
-    lok(Key_Set_has_key(ks, KEY_SET_STRING, "quux", 4));
-    lok(Key_Set_has_key(ks, KEY_SET_STRING, "one fish", 8));
-    lok(Key_Set_has_key(ks, KEY_SET_STRING, "two fish", 8));
-    lok(Key_Set_has_key(ks, KEY_SET_STRING, "red fish", 3));
-    lok(Key_Set_has_key(ks, KEY_SET_STRING, "blue fish", 9));
+    lok(Key_Set_has_key(ks, KEY_SET_STRING, (const char8_t *)"foo", 3));
+    lok(Key_Set_has_key(ks, KEY_SET_STRING, (const char8_t *)"bar", 3));
+    lok(Key_Set_has_key(ks, KEY_SET_STRING, (const char8_t *)"baz", 3));
+    lok(Key_Set_has_key(ks, KEY_SET_STRING, (const char8_t *)"quux", 4));
+    lok(Key_Set_has_key(ks, KEY_SET_STRING, (const char8_t *)"one fish", 8));
+    lok(Key_Set_has_key(ks, KEY_SET_STRING, (const char8_t *)"two fish", 8));
+    lok(Key_Set_has_key(ks, KEY_SET_STRING, (const char8_t *)"red fish", 3));
+    lok(Key_Set_has_key(ks, KEY_SET_STRING, (const char8_t *)"blue fish", 9));
 
     Key_Set_free(ks);
 }

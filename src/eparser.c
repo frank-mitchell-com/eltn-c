@@ -69,7 +69,7 @@ struct ELTN_Parser {
      */
     ELTN_Event last_event;
     ELTN_Event event;
-    char* text;
+    char8_t* text;
     size_t text_len;
     char8_t* string;
     size_t string_len;
@@ -184,7 +184,8 @@ ELTN_API void ELTN_Parser_current_key(ELTN_Parser* self, ELTN_Event* typeptr,
     } else {
         // Take this, never-nesters!
         *typeptr = self->top->key_type;
-        ELTN_new_string(strptr, lenptr, self->top->key, self->top->keylen);
+        ELTN_new_string(strptr, lenptr,
+                        (const char*)self->top->key, self->top->keylen);
     }
 }
 
@@ -333,17 +334,17 @@ static void signal_out_of_memory(ELTN_Parser* self) {
     self->errcode = ELTN_ERR_OUT_OF_MEMORY;
 }
 
-static void set_string_ref(ELTN_Parser* self, char* str, size_t len) {
+static void set_string_ref(ELTN_Parser* self, char8_t* str, size_t len) {
     if (str != NULL) {
         ELTN_free(self->pool, self->string);
-        self->string = (char8_t *) str;
+        self->string = str;
         self->string_len = len;
         self->string_max = len;
         return;
     }
 }
 
-static bool set_string_copy(ELTN_Parser* self, char* str, size_t len) {
+static bool set_string_copy(ELTN_Parser* self, char8_t* str, size_t len) {
     if (self->string == NULL || self->string_max <= len) {
         self->string = ELTN_realloc(self->pool, self->string, len + 1);
         if (self->string == NULL) {
@@ -364,17 +365,17 @@ static bool set_string_copy(ELTN_Parser* self, char* str, size_t len) {
 }
 
 static void capture_token_buffer(ELTN_Parser* self) {
-    char* tokstr = NULL;
+    char8_t* tokstr = NULL;
     size_t toklen = 0;
 
     ELTN_Lexer_token_string(self->lexer, &tokstr, &toklen);
-    ELTN_free_string(self->text);
+    ELTN_free(self-> pool, self->text);
     self->text = tokstr;
     self->text_len = toklen;
 }
 
 static void set_event(ELTN_Parser* self, ELTN_Token token, ELTN_Event event) {
-    char* str = NULL;
+    char8_t* str = NULL;
     size_t len = 0;
 
     self->event = event;
@@ -456,6 +457,10 @@ static ELTN_Token next_token(ELTN_Parser* self, int* lineptr, int* columnptr) {
 }
 
 static bool expect_value(ELTN_Parser* self, ELTN_Token token) {
+    ELTN_Event oldevent;
+    char8_t* oldstr;
+    size_t oldstrlen;
+
     switch (token) {
     case ELTN_TOKEN_STRING:
         set_event(self, token, ELTN_VALUE_STRING);
@@ -479,18 +484,16 @@ static bool expect_value(ELTN_Parser* self, ELTN_Token token) {
         set_event(self, token, ELTN_VALUE_NIL);
         return true;
     case ELTN_TOKEN_CURLY_OPEN:
-        ELTN_Event oldevent = self->event;
-        char* oldstr;
-        size_t oldstrlen;
-
-        ELTN_new_string(&oldstr, &oldstrlen, (const char*) self->string,
-                        self->string_len);
+        /* Save previous key to set as the current key */
+        oldevent = self->event;
+        ELTN_copy_string(self->pool, &oldstr, &oldstrlen, self->string,
+                         self->string_len);
 
         set_event(self, token, ELTN_TABLE_START);
         self->depth++;
         push_stack_frame(self);
         set_current_key(self, oldevent, oldstr, oldstrlen);
-        free(oldstr);
+        ELTN_free(self->pool, oldstr);
         return true;
     default:
         return false;
@@ -535,12 +538,13 @@ static bool expect_new_entry(ELTN_Parser* self, ELTN_Token token, int* lineptr,
     bool result = expect_value(self, token);
 
     if (result && self->top != NULL) {
-        char keystr[128];
+        char8_t keystr[128];
         size_t keylen;
 
         self->top->last_ikey++;
 
-        keylen = snprintf(keystr, sizeof(keystr), "%d", self->top->last_ikey);
+        keylen = snprintf((char *)keystr, sizeof(keystr), "%d",
+                          self->top->last_ikey);
 
         set_current_key(self, ELTN_KEY_INTEGER, keystr, keylen);
     }

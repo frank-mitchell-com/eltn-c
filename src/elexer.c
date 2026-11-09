@@ -97,12 +97,11 @@ void ELTN_Lexer_set_char_source(ELTN_Lexer* self, ELTN_Char_Source fcn,
     self->source = state;
 }
 
-void ELTN_Lexer_token_string(ELTN_Lexer* self, char** strptr, size_t* lenptr) {
+void ELTN_Lexer_token_string(ELTN_Lexer* self, char8_t** strptr, size_t* lenptr) {
     if (strptr && lenptr) {
         size_t toklen = self->token_buffer_tail - self->token_buffer;
 
-        ELTN_new_string(strptr, lenptr, (const char *)self->token_buffer,
-                        toklen);
+        ELTN_copy_string(self->pool, strptr, lenptr, self->token_buffer, toklen);
     }
 }
 
