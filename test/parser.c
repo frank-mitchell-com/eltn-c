@@ -456,6 +456,109 @@ void document_with_levels() {
     ELTN_Parser_free(parser);
 }
 
+void long_string_error() {
+    const char* data =
+        "s = \"long string\"\nt = [[error string";
+
+    ELTN_Parser* parser = ELTN_Parser_new();
+
+    parse_string(parser, data);
+
+    lequal(ELTN_STREAM_START, ELTN_Parser_event(parser));
+    lequal(0, (int)ELTN_Parser_depth(parser));
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_DEF_NAME, ELTN_Parser_event(parser));
+    assert_string_equal(parser, "s");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_VALUE_STRING, ELTN_Parser_event(parser));
+    assert_string_equal(parser, "long string");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_DEF_NAME, ELTN_Parser_event(parser));
+    assert_string_equal(parser, "t");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_ERROR, ELTN_Parser_event(parser));
+    lequal(ELTN_ERR_INVALID_TOKEN, ELTN_Parser_error_code(parser));
+    lequal(2, ELTN_Parser_error_line(parser));
+    lequal(5, ELTN_Parser_error_column(parser));
+    assert_string_equal(parser, "[[error string");
+    lok(!ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_free(parser);
+}
+
+void unexpected_token_error() {
+    const char* data = "s = 1 false";
+
+    ELTN_Parser* parser = ELTN_Parser_new();
+
+    parse_string(parser, data);
+
+    lequal(ELTN_STREAM_START, ELTN_Parser_event(parser));
+    lequal(0, (int)ELTN_Parser_depth(parser));
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_DEF_NAME, ELTN_Parser_event(parser));
+    assert_string_equal(parser, "s");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_VALUE_NUMBER, ELTN_Parser_event(parser));
+    assert_string_equal(parser, "1");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_ERROR, ELTN_Parser_event(parser));
+    lequal(ELTN_ERR_UNEXPECTED_TOKEN, ELTN_Parser_error_code(parser));
+    lequal(1, ELTN_Parser_error_line(parser));
+    lequal(7, ELTN_Parser_error_column(parser));
+    assert_string_equal(parser, "false");
+    lok(!ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_free(parser);
+}
+
+void duplicate_key() {
+    ELTN_Parser* parser = ELTN_Parser_new();
+
+    parse_string(parser, "{n=true, n=false}");
+
+    lequal(ELTN_STREAM_START, ELTN_Parser_event(parser));
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_TABLE_START, ELTN_Parser_event(parser));
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_KEY_STRING, ELTN_Parser_event(parser));
+    assert_string_equal(parser, "n");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_VALUE_TRUE, ELTN_Parser_event(parser));
+    assert_string_equal(parser, "true");
+    lok(ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_next(parser);
+    lequal(ELTN_ERROR, ELTN_Parser_event(parser));
+    lequal(ELTN_ERR_DUPLICATE_KEY, ELTN_Parser_error_code(parser));
+    assert_string_equal(parser, "n");
+    lequal(1, ELTN_Parser_error_line(parser));
+    lequal(10, ELTN_Parser_error_column(parser));
+    lok(!ELTN_Parser_has_next(parser));
+
+    ELTN_Parser_free(parser);
+}
+
 int main() {
     lrun("test_empty_document", empty_document);
     lrun("test_empty_table", empty_table);
@@ -463,6 +566,9 @@ int main() {
     lrun("test_simple_table", simple_table);
     lrun("test_complex_document", complex_document);
     lrun("test_document_with_levels", document_with_levels);
+    lrun("test_long_string_error", long_string_error);
+    lrun("test_unexpected_token_error", unexpected_token_error);
+    lrun("test_duplicate_key", duplicate_key);
     lresults();
     return lfails != 0;
 }

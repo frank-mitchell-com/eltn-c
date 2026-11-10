@@ -10,15 +10,15 @@
  * Software is furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Software->
+ * in all copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT-> IN NO EVENT SHALL THE
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE->
+ * DEALINGS IN THE SOFTWARE.
  *
  ****************************************************************************/
 
@@ -294,25 +294,13 @@ static void push_stack_frame(ELTN_Parser* self) {
 static void set_current_key(ELTN_Parser* self, ELTN_Event type,
                             const char8_t* key, size_t keylen) {
     Stack_Frame* topframe = self->top;
-    Key_Type ktype;
 
-    switch (type) {
-    case ELTN_KEY_NUMBER:
-    case ELTN_KEY_INTEGER:
-        ktype = KEY_SET_NUMBER;
-        break;
-    default:
-        ktype = KEY_SET_STRING;
-        break;
-    }
     ELTN_free(self->pool, topframe->key);
     topframe->key_type = type;
     topframe->keylen = keylen;
     topframe->key = ELTN_alloc(self->pool, keylen + 2);
     memset(topframe->key, 0, keylen + 2);
     memcpy(topframe->key, key, keylen);
-
-    Key_Set_add_key(topframe->keys, ktype, key, keylen);
 }
 
 static void set_current_key_from_string(ELTN_Parser* self, ELTN_Event type) {
@@ -441,6 +429,16 @@ static void signal_error(ELTN_Parser* self, ELTN_Token token,
     }
 }
 
+static void signal_error_2(ELTN_Parser* self,
+                           ELTN_Error error, int line, int column) {
+    self->event = ELTN_ERROR;
+    capture_token_buffer(self);
+    set_string_copy(self, self->text, self->text_len);
+    self->errcode = error;
+    self->errline = line;
+    self->errcolumn = column;
+}
+
 static ELTN_Token next_token(ELTN_Parser* self, int* lineptr, int* columnptr) {
     ELTN_Token nextToken =
         ELTN_Lexer_next_token(self->lexer, lineptr, columnptr);
@@ -506,10 +504,23 @@ static bool expect_value(ELTN_Parser* self, ELTN_Token token) {
     return false;
 }
 
+static void check_duplicate_key(ELTN_Parser* self, Key_Type type, int* lineptr,
+                                int* colptr) {
+    if (self->top != NULL) {
+        if (Key_Set_has_key(self->top->keys, type, self->string,
+                            self->string_len)) {
+            signal_error_2(self, ELTN_ERR_DUPLICATE_KEY, *lineptr, *colptr);
+            return;
+        }
+        Key_Set_add_key(self->top->keys, type, self->string, self->string_len);
+    }
+}
+
 static bool expect_new_entry(ELTN_Parser* self, ELTN_Token token, int* lineptr,
                              int* colptr) {
     if (token == ELTN_TOKEN_NAME) {
         set_event(self, token, ELTN_KEY_STRING);
+        check_duplicate_key(self, KEY_SET_STRING, lineptr, colptr);
         set_current_key_from_string(self, ELTN_KEY_STRING);
         return true;
     }
@@ -520,14 +531,17 @@ static bool expect_new_entry(ELTN_Parser* self, ELTN_Token token, int* lineptr,
         case ELTN_TOKEN_STRING:
         case ELTN_TOKEN_LONG_STRING:
             set_event(self, token, ELTN_KEY_STRING);
+            check_duplicate_key(self, KEY_SET_STRING, lineptr, colptr);
             set_current_key_from_string(self, ELTN_KEY_STRING);
             break;
         case ELTN_TOKEN_NUMBER:
             set_event(self, token, ELTN_KEY_NUMBER);
+            check_duplicate_key(self, KEY_SET_NUMBER, lineptr, colptr);
             set_current_key_from_string(self, ELTN_KEY_NUMBER);
             break;
         case ELTN_TOKEN_INTEGER:
             set_event(self, token, ELTN_KEY_INTEGER);
+            check_duplicate_key(self, KEY_SET_NUMBER, lineptr, colptr);
             set_current_key_from_string(self, ELTN_KEY_INTEGER);
             break;
         default:
@@ -535,7 +549,7 @@ static bool expect_new_entry(ELTN_Parser* self, ELTN_Token token, int* lineptr,
         }
         token = next_token(self, lineptr, colptr);
         if (token != ELTN_TOKEN_SQUARE_CLOSE) {
-            signal_error(self, token, *lineptr, *colptr);
+            signal_error_2(self, ELTN_ERR_UNEXPECTED_TOKEN, *lineptr, *colptr);
         }
         return true;
     }

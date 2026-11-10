@@ -176,9 +176,14 @@ static size_t token_buffer_length(ELTN_Lexer* self) {
 }
 
 static bool token_buffer_equals(ELTN_Lexer* self, const char* str) {
-    const size_t toklen = self->token_buffer_tail - self->token_buffer;
+    const size_t toksiz = token_buffer_length(self);
+    const size_t strsiz = strlen(str);
 
-    return strncmp((const char *)(self->token_buffer), str, toklen) == 0;
+    if (strsiz != toksiz) {
+        return false;
+    }
+
+    return strncmp((const char *)(self->token_buffer), str, strsiz) == 0;
 }
 
 static bool token_buffer_starts_with(ELTN_Lexer* self, const char* str) {

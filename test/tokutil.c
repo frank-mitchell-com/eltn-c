@@ -116,6 +116,18 @@ void long_string_quotes() {
     lsequal(expect, (const char*)str);
 }
 
+void long_string_short() {
+    char8_t* str;
+    size_t len;
+    const char* data = "[[o]]";
+    const char* expect = "o";
+
+    ELTN_unquote_long_string(NULL, (const char8_t *)data, strlen(data),
+                             &str, &len);
+    lequal((int)strlen(expect), (int)len);
+    lsequal(expect, (const char*)str);
+}
+
 void comment_content() {
     char8_t* str;
     size_t len;
@@ -140,6 +152,18 @@ void long_comment_content() {
     lsequal(expect, (const char*)str);
 }
 
+void long_comment_not() {
+    char8_t* str;
+    size_t len;
+    const char* data =
+        "--[oh] this is not a long comment\n";
+    const char* expect = "[oh] this is not a long comment";
+
+    ELTN_trim_comment(NULL, (const char8_t *)data, strlen(data), &str, &len);
+    lequal((int)strlen(expect), (int)len);
+    lsequal(expect, (const char*)str);
+}
+
 /*
  * TODO: test bad escape sequences and missing quotes.
  */
@@ -153,8 +177,10 @@ int main() {
     lrun("test_string_octal_escapes", string_octal_escapes);
     lrun("test_string_unicode_escapes", string_unicode_escapes);
     lrun("test_long_string_quotes", long_string_quotes);
+    lrun("test_long_string_short", long_string_short);
     lrun("test_comment_content", comment_content);
     lrun("test_long_comment_content", long_comment_content);
+    lrun("test_long_comment_not", long_comment_content);
     lresults();
     return lfails != 0;
 }

@@ -217,6 +217,28 @@ void lexer_boolean_true() {
     ELTN_Lexer_free(lexer);
 }
 
+void lexer_boolean_not() {
+    ELTN_Lexer* lexer;
+    Mock_Source source;
+
+    lexer = set_up(&source, "  t tr tru true f fa fal fals false  ");
+
+    lok(lexer != NULL);
+
+    assert_token(lexer, ELTN_TOKEN_NAME, "t", 1, 3);
+    assert_token(lexer, ELTN_TOKEN_NAME, "tr", 1, 5);
+    assert_token(lexer, ELTN_TOKEN_NAME, "tru", 1, 8);
+    assert_token(lexer, ELTN_TOKEN_BOOLEAN_TRUE, "true", 1, 12);
+    assert_token(lexer, ELTN_TOKEN_NAME, "f", 1, 17);
+    assert_token(lexer, ELTN_TOKEN_NAME, "fa", 1, 19);
+    assert_token(lexer, ELTN_TOKEN_NAME, "fal", 1, 22);
+    assert_token(lexer, ELTN_TOKEN_NAME, "fals", 1, 26);
+    assert_token(lexer, ELTN_TOKEN_BOOLEAN_FALSE, "false", 1, 31);
+    assert_token(lexer, ELTN_TOKEN_EOF, "", 1, 38);
+
+    ELTN_Lexer_free(lexer);
+}
+
 void lexer_boolean_false() {
     ELTN_Lexer* lexer;
     Mock_Source source;
@@ -578,6 +600,7 @@ int main() {
     lrun("test_lexer_nil", lexer_nil);
     lrun("test_lexer_boolean_true", lexer_boolean_true);
     lrun("test_lexer_boolean_false", lexer_boolean_false);
+    lrun("test_lexer_boolean_not", lexer_boolean_not);
     lrun("test_lexer_boolean_false_positive", lexer_boolean_false_positive);
     lrun("test_lexer_strings", lexer_strings);
     lrun("test_lexer_strings_2", lexer_strings_2);

@@ -34,7 +34,7 @@
 
 bool ELTN_Conv_is_ascii(size_t sz, const char* buf) {
     for (size_t i = 0; i < sz; i++) {
-        if (buf[i] < 0 || buf[i] > 127) {
+        if (buf[i] < 0) {
             return false;
         }
     }
