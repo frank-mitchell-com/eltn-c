@@ -31,7 +31,7 @@
 #include "elexer.h"
 #include "ebuffer.h"
 #include "ealloc.h"
-#include "estring.h"
+#include "etokutil.h"
 
 #define INIT_BUF_SIZE 1024
 

@@ -22,7 +22,7 @@
 
 #include <string.h>
 #include "minctest.h"
-#include "estring.h"
+#include "etokutil.h"
 #include "econv.h"
 
 void string_quotes() {
@@ -103,10 +103,45 @@ void string_unicode_escapes() {
     lsequal(expect, (const char*)str);
 }
 
+void long_string_quotes() {
+    char8_t* str;
+    size_t len;
+    const char* data =
+        "[==[\nthis is a\nshort long string\n]==]";
+    const char* expect = "this is a\nshort long string\n";
+
+    ELTN_unquote_long_string(NULL, (const char8_t *)data, strlen(data),
+                             &str, &len);
+    lequal((int)strlen(expect), (int)len);
+    lsequal(expect, (const char*)str);
+}
+
+void comment_content() {
+    char8_t* str;
+    size_t len;
+    const char* data =
+        "-- this is a simple comment\n";
+    const char* expect = " this is a simple comment";
+
+    ELTN_trim_comment(NULL, (const char8_t *)data, strlen(data), &str, &len);
+    lequal((int)strlen(expect), (int)len);
+    lsequal(expect, (const char*)str);
+}
+
+void long_comment_content() {
+    char8_t* str;
+    size_t len;
+    const char* data =
+        "--[[\nthis is a long\ncomment\n]]";
+    const char* expect = "this is a long\ncomment\n";
+
+    ELTN_trim_comment(NULL, (const char8_t *)data, strlen(data), &str, &len);
+    lequal((int)strlen(expect), (int)len);
+    lsequal(expect, (const char*)str);
+}
+
 /*
  * TODO: test bad escape sequences and missing quotes.
- * TODO: test long strings.
- * TODO: test comments and long comments.
  */
 
 int main() {
@@ -117,6 +152,9 @@ int main() {
     lrun("test_string_hex_escapes", string_hex_escapes);
     lrun("test_string_octal_escapes", string_octal_escapes);
     lrun("test_string_unicode_escapes", string_unicode_escapes);
+    lrun("test_long_string_quotes", long_string_quotes);
+    lrun("test_comment_content", comment_content);
+    lrun("test_long_comment_content", long_comment_content);
     lresults();
     return lfails != 0;
 }

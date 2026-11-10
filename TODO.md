@@ -23,6 +23,7 @@ Coding
   - handle illegal tokens
   - handle i/o errors from source
   - track keys already used in each table
+  - enable comments as events, verify they come through
 
 ### Emitter
 

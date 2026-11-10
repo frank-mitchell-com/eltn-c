@@ -35,7 +35,7 @@
 #include "ebuffer.h"
 #include "econv.h"
 #include "ealloc.h"
-#include "estring.h"
+#include "etokutil.h"
 #include "ekeyset.h"
 
 #define INIT_BUF_SIZE   512

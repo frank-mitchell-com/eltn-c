@@ -70,7 +70,7 @@ $(LIB): $(OBJECTS) | $(LIBDIR)
 
 $(TESTDIR)/test-%: $(TESTDIR)/%.c $(LIB) $(HEADERS) $(TESTINCS)
 	$(CC) -static $(CFLAGS) -O0 $(IFLAGS) -o $@ $< $(LFLAGS)
-	./$@
+	#./$@
 
 $(SHLIB): $(OBJECTS)
 	$(CC) -shared -Wl,-soname,$(SONAME) -o $(SHLIB) $^

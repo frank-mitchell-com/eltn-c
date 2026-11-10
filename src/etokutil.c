@@ -26,7 +26,7 @@
 #include <string.h>
 #include "econv.h"
 #include "ealloc.h"
-#include "estring.h"
+#include "etokutil.h"
 
 
 static const char8_t* append_octal(const char8_t* instr, char8_t* buf,
@@ -198,18 +198,75 @@ void ELTN_unescape_quoted_string(ELTN_Pool* h,
 void ELTN_unquote_long_string(ELTN_Pool* h,
                               const char8_t* instr, const size_t inlen,
                               char8_t** outstrptr, size_t* outlenptr) {
-    /*
-       TODO: Wrong! 
-     */
-    ELTN_copy_string(h, outstrptr, outlenptr, instr, inlen);
+    size_t new_start;
+    size_t new_length;
+    size_t quote_length;
+
+    // assert instr[0] == "["
+    // assert instr[inlen-1] == "]"
+    new_start = 1;
+    quote_length = 1;
+    new_length = inlen;
+    while (new_start < inlen && instr[new_start] != '[') {
+        new_start++;
+        quote_length++;
+    }
+    new_start++;
+    quote_length++;
+    if (quote_length * 2 > inlen) {
+        new_start = 0;
+        new_length = 0;
+    } else {
+        new_length -= 2 * quote_length;
+        if (instr[new_start] == '\n') {
+            new_length--;
+            new_start++;
+        }
+    }
+    ELTN_copy_string(h, outstrptr, outlenptr, instr + new_start, new_length);
 }
 
 void ELTN_trim_comment(ELTN_Pool* h, const char8_t* instr, const size_t inlen,
                        char8_t** outstrptr, size_t* outlenptr) {
-    /*
-       TODO: Wrong! 
-     */
-    ELTN_copy_string(h, outstrptr, outlenptr, instr, inlen);
+
+    size_t new_start;
+    size_t new_length;
+    size_t quote_length;
+    bool notaquote;
+
+    //assert instr[0:1] == "--"
+    if (instr[2] != '[') {
+        new_start = 2;
+        new_length = inlen - 3;
+        quote_length = 0;
+    } else {
+        new_start = 3;
+        quote_length = 1;
+        new_length = inlen - 4;
+        notaquote = false;
+        while (new_start < inlen && instr[new_start] != '[') {
+            if (instr[new_start] != '=') {
+                notaquote = true;
+                break;
+            }
+            new_start++;
+            quote_length++;
+        }
+        new_start++;
+        quote_length++;
+        if (!notaquote && quote_length * 2 < inlen) {
+            new_length = inlen - (quote_length * 2 + 2);
+            if (instr[new_start] == '\n') {
+                new_length--;
+                new_start++;
+            }
+        } else {
+            new_start = 2;
+            new_length = inlen - 3;
+            quote_length = 0;
+        }
+    }
+    ELTN_copy_string(h, outstrptr, outlenptr, instr + new_start, new_length);
 }
 
 bool ELTN_is_newline(const char8_t* str, size_t len) {
