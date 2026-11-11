@@ -11,18 +11,13 @@ Coding
   - pass on out-of-memory error
 
 - Implement String Routines
-  - unquote long strings
-  - trim comments and long comments
   - plug leak under error conditions
   - signal error conditions to caller
 
 ### Parser
 
 - Implement Parser
-  - handle illegal sequences of tokens
-  - handle illegal tokens
-  - handle i/o errors from source
-  - track keys already used in each table
+  - handle i/o errors from buffer
   - enable comments as events, verify they come through
 
 ### Emitter
@@ -65,8 +60,7 @@ Testing
   - abnormal input, e.g. long strings
 
 - Test `ELTN_Parser`
-  - unquoted unescaped quoted strings
-  - unquoted long strings
+  - non-symbols as keys
   - no comments if flag is not set
   - unquoted comments if flag is set
   - unquoted long comments if flag is set
