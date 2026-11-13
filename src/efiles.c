@@ -22,7 +22,7 @@
  *
  ****************************************************************************/
 
-#ifndef ELTN_NO_STDIO
+#ifndef ELTN_NO_FILES
 
 #include <stdio.h>
 #include <stdlib.h>

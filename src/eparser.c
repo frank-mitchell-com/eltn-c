@@ -669,6 +669,8 @@ ELTN_API void ELTN_Parser_next(ELTN_Parser* self) {
             if (!self->no_defs
                 && expect_new_definition(self, token, &line, &column)) {
                 return;
+            } else if (self->no_defs && expect_table_start(self, token)) {
+                return;
             } else if (expect_stream_end(self, token)) {
                 return;
             } else {

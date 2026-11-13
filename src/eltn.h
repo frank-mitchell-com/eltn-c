@@ -32,7 +32,7 @@ extern "C" {
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#ifndef ELTN_NO_STDIO
+#ifndef ELTN_NO_FILES
 #include <stdio.h>
 #endif
 #include <sys/types.h>
@@ -282,7 +282,7 @@ ELTN_API ssize_t ELTN_Parser_parse(ELTN_Parser * parser, const char* str,
 ELTN_API ssize_t ELTN_Parser_read(ELTN_Parser * parser, ELTN_Reader reader,
                                   void* state);
 
-#ifndef ELTN_NO_STDIO
+#ifndef ELTN_NO_FILES
 
 /**
  * Set a reader function and read the first chunk of the file to be parsed.
@@ -554,7 +554,7 @@ ELTN_API bool ELTN_Emitter_def_name(ELTN_Emitter * emitter, const char* n);
  * The following events should define a value or table.
  *
  * @param emitter the emitter
- * @param s the ASCII/UTF-8 string used as a key in the enclosing table,
+ * @param s the string used as a key in the enclosing table,
  *          which may include nulls.
  * @param len the length of @p s in bytes.
  *
@@ -571,14 +571,11 @@ ELTN_API bool ELTN_Emitter_key_string(ELTN_Emitter * emitter, const char* s,
  *
  * @param emitter the emitter
  * @param n the number used as a key in the enclosing table
- * @param sigfigs the number of significant figures to include in @p n,
- *                in case of floating point rounding errors.
  *
  * @return `true` if no error, `false` if an error occurred.
  *          See ELTN_Emitter_error_code() for the error.
  */
-ELTN_API bool ELTN_Emitter_key_number(ELTN_Emitter * emitter, double n,
-                                      unsigned int sigfigs);
+ELTN_API bool ELTN_Emitter_key_number(ELTN_Emitter * emitter, double n);
 
 /**
  * Add a `KEY_INTEGER` event to the ELTN document.
@@ -591,7 +588,7 @@ ELTN_API bool ELTN_Emitter_key_number(ELTN_Emitter * emitter, double n,
  * @return `true` if no error, `false` if an error occurred.
  *          See ELTN_Emitter_error_code() for the error.
  */
-ELTN_API bool ELTN_Emitter_key_integer(ELTN_Emitter * emitter, int i);
+ELTN_API bool ELTN_Emitter_key_integer(ELTN_Emitter * emitter, long int i);
 
 /**
  * Add a `VALUE_STRING` event to the ELTN document.
@@ -603,7 +600,7 @@ ELTN_API bool ELTN_Emitter_key_integer(ELTN_Emitter * emitter, int i);
  * value or table, or close the existing table.
  *
  * @param emitter the emitter
- * @param s the ASCII/UTF-8 string value in the enclosing table or definition table,
+ * @param s the string value in the enclosing table or definition table,
  *          which may include nulls.
  * @param len the length of @p s in bytes.
  *
@@ -624,14 +621,11 @@ ELTN_API bool ELTN_Emitter_value_string(ELTN_Emitter * emitter, const char* s,
  *
  * @param emitter the emitter
  * @param n the number value in the enclosing table or definition table
- * @param sigfigs the number of significant figures to include in @p n,
- *                in case of floating point rounding errors.
  *
  * @return `true` if no error, `false` if an error occurred.
  *          See ELTN_Emitter_error_code() for the error.
  */
-ELTN_API bool ELTN_Emitter_value_number(ELTN_Emitter * emitter, double n,
-                                        unsigned int sigfigs);
+ELTN_API bool ELTN_Emitter_value_number(ELTN_Emitter * emitter, double n);
 
 /**
  * Add a `VALUE_NUMBER` event to the ELTN document.
@@ -648,7 +642,7 @@ ELTN_API bool ELTN_Emitter_value_number(ELTN_Emitter * emitter, double n,
  * @return `true` if no error, `false` if an error occurred.
  *          See ELTN_Emitter_error_code() for the error.
  */
-ELTN_API bool ELTN_Emitter_value_integer(ELTN_Emitter * emitter, int i);
+ELTN_API bool ELTN_Emitter_value_integer(ELTN_Emitter * emitter, long int i);
 
 /**
  * Add a `VALUE_TRUE` or `VALUE_FALSE` event to the ELTN document.
@@ -786,7 +780,7 @@ ELTN_API ELTN_Error ELTN_Emitter_error_code(ELTN_Emitter * emitter);
  * @param emitter the emitter
  * @param strptr a pointer to the string to be created; may not be NULL.
  * @param lenptr a pointer to the length of the string to be created;
- *        may be NULL, but if so all nulls will be translated to "\0"
+ *        may include nulls, but if so all nulls will be translated to "\0"
  *        sequences.
  */
 ELTN_API void ELTN_Emitter_error_path(ELTN_Emitter * emitter, char** strptr,
@@ -861,7 +855,7 @@ ELTN_API ssize_t ELTN_Emitter_length(ELTN_Emitter * emitter);
 ELTN_API void ELTN_Emitter_write_string(ELTN_Emitter * emitter, char** strptr,
                                         size_t* lenptr);
 
-#ifndef ELTN_NO_STDIO
+#ifndef ELTN_NO_FILES
 
 /**
  * Write the current document text to a file.
