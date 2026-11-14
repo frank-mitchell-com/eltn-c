@@ -1,6 +1,7 @@
 This project implements the ELTN spec located at
-<https://frank-mitchell.com/projects/eltn/>
-according to the (probably out of date) spec at
+<https://frank-mitchell.com/projects/eltn/> or
+<https://github.com/frank-mitchell-com/eltn-c/blob/main/doc/eltn.md>
+according to the (probably out of date) design at
 <https://frank-mitchell.com/projects/eltn-c/>
 
 ## Building ELTN-C
@@ -55,7 +56,7 @@ I have not considered.  Patches would be welcome.
 ### `ELTN_Parser`
 
 ELTN-C uses a pull parser; you point it at some text using 
-`ELTN_Parser_read()`, `ELTN_Parser_read_file()`, or `ELTN_Parser_read_string()`
+`ELTN_Parser_parse()`, `ELTN_Parser_read_file()`, or `ELTN_Parser_read()`
 then turn the crank, so to speak, with
 `ELTN_Parser_has_next()`, `ELTN_Parser_next()`, and `ELTN_Parser_event()` 
 until the document is done.
