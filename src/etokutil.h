@@ -30,6 +30,14 @@
 #include "eltn.h"
 #include "econv.h"
 
+bool ELTN_is_keyword(const char* word);
+
+bool ELTN_is_name(const char* word);
+
+void ELTN_quote_string(ELTN_Pool * h,
+                       const char8_t * instr, const size_t inlen,
+                       char8_t ** outstrptr, size_t* lenptr);
+
 void ELTN_unescape_quoted_string(ELTN_Pool * h,
                                  const char8_t * instr, const size_t inlen,
                                  char8_t ** outstrptr, size_t* lenptr);
@@ -37,6 +45,10 @@ void ELTN_unescape_quoted_string(ELTN_Pool * h,
 void ELTN_unquote_long_string(ELTN_Pool * h,
                               const char8_t * instr, const size_t inlen,
                               char8_t ** outstrptr, size_t* lenptr);
+
+void ELTN_format_comment(ELTN_Pool * h,
+                         const char8_t * instr, const size_t inlen,
+                         char8_t ** outstrptr, size_t* lenptr);
 
 void ELTN_trim_comment(ELTN_Pool * h, const char8_t * instr, const size_t inlen,
                        char8_t ** outstrptr, size_t* lenptr);

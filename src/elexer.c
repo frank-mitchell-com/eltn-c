@@ -35,18 +35,6 @@
 
 #define INIT_BUF_SIZE 1024
 
-#define KEYWORDS_SIZE 22
-
-/*
- * Keywords in Lua 5.4.  5.5 adds "global", but it's a "soft" keyword
- * and might also be a NAME token.
- */
-const char* KEYWORDS[] = {
-    "and", "break", "do", "else", "elseif", "end",
-    "false", "for", "function", "goto", "if", "in",
-    "local", "nil", "not", "or", "repeat", "return",
-    "then", "true", "until", "while"
-};
 
 struct ELTN_Lexer {
     intptr_t _reserved;
@@ -199,20 +187,10 @@ static bool token_buffer_ends_with(ELTN_Lexer* self, const char* str) {
     return strncmp(token_end, str, cmplen) == 0;
 }
 
-static int strptrcmp(const void* a, const void* b) {
-    const char** astrptr = (const char **)a;
-    const char** bstrptr = (const char **)b;
-
-    return strcmp(*astrptr, *bstrptr);
-}
-
 static bool token_buffer_is_keyword(ELTN_Lexer* self) {
     const char* token = (const char *)self->token_buffer;
 
-    void* result =
-        bsearch(&token, KEYWORDS, KEYWORDS_SIZE, sizeof(char8_t *), strptrcmp);
-
-    return result != NULL;
+    return ELTN_is_keyword(token);
 }
 
 static ELTN_Token consume_until_matching_quote(ELTN_Lexer* self, char8_t quote) {

@@ -167,6 +167,10 @@ void triple_table() {
     ELTN_Parser_free(parser);
 }
 
+/*
+ * TODO: test that top-level definitions and tables don't mix.
+ */
+
 void single_definition() {
     ELTN_Parser* parser = ELTN_Parser_new();
 

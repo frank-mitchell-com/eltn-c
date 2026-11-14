@@ -24,10 +24,128 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "econv.h"
 #include "ealloc.h"
 #include "etokutil.h"
+#include "estrbuf.h"
 
+#define KEYWORDS_SIZE 22
+
+/*
+ * Keywords in Lua 5.4.  5.5 adds "global", but it's a "soft" keyword
+ * and might also be a NAME token.
+ */
+const char* KEYWORDS[] = {
+    "and", "break", "do", "else", "elseif", "end",
+    "false", "for", "function", "goto", "if", "in",
+    "local", "nil", "not", "or", "repeat", "return",
+    "then", "true", "until", "while"
+};
+
+static int strptrcmp(const void* a, const void* b) {
+    const char** astrptr = (const char **)a;
+    const char** bstrptr = (const char **)b;
+
+    return strcmp(*astrptr, *bstrptr);
+}
+
+bool ELTN_is_keyword(const char* word) {
+    void* result =
+        bsearch(&word, KEYWORDS, KEYWORDS_SIZE, sizeof(char8_t *), strptrcmp);
+
+    return result != NULL;
+}
+
+bool ELTN_is_name(const char* word) {
+    size_t wordlen = strlen(word);
+
+    if (wordlen == 0) {
+        return false;
+    }
+    if (!ELTN_is_name_start(word[0])) {
+        return false;
+    }
+    for (size_t i = 1; i < wordlen; i++) {
+        if (!ELTN_is_name_part(word[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static void ELTN_quote_long_string(ELTN_Pool * h,
+                       const char8_t* instr, const size_t inlen,
+                       char8_t** outstrptr, size_t* outlenptr) {
+    // TODO: scan instr for long quote marks
+    // TODO: bracket with non-conflicting long quotes
+}
+
+static void append_hex_escape(String_Buffer* strbuf, char8_t c) {
+    char tmpbuf[8];
+    size_t written;
+
+    memset(tmpbuf, 0, sizeof(tmpbuf));
+    written = snprintf(tmpbuf, sizeof(tmpbuf), "\\x%02x", (int)c);
+    String_Buffer_append_string(strbuf, tmpbuf, written);
+}
+
+void ELTN_quote_string(ELTN_Pool * h,
+                       const char8_t* instr, const size_t inlen,
+                       char8_t** outstrptr, size_t* outlenptr) {
+    if (inlen > 80) {
+        ELTN_quote_long_string(h, instr, inlen, outstrptr, outlenptr);
+    } else {
+        String_Buffer* strbuf = String_Buffer_new_with_pool(h);
+
+        String_Buffer_append_char(strbuf, '"');
+        for (size_t i = 0; i < inlen; i++) {
+            char8_t c = instr[i];
+
+            switch(c) {
+            case '\0':
+                String_Buffer_append_string(strbuf, "\\0", 2);
+                break;
+            case '\"':
+                String_Buffer_append_string(strbuf, "\\\"", 2);
+                break;
+            case '\'':
+                String_Buffer_append_string(strbuf, "\\\'", 2);
+                break;
+            case 0x07:
+                String_Buffer_append_string(strbuf, "\\a", 2);
+                break;
+            case 0x08:
+                String_Buffer_append_string(strbuf, "\\b", 2);
+                break;
+            case 0x0c:
+                String_Buffer_append_string(strbuf, "\\f", 2);
+                break;
+            case '\n':
+                String_Buffer_append_string(strbuf, "\\n", 2);
+                break;
+            case '\r':
+                String_Buffer_append_string(strbuf, "\\r", 2);
+                break;
+            case '\t':
+                String_Buffer_append_string(strbuf, "\\t", 2);
+                break;
+            case 0x0b:
+                String_Buffer_append_string(strbuf, "\\v", 2);
+                break;
+            default:
+                if (isprint(c) || c > 0x7F) {
+                    String_Buffer_append_char(strbuf, (char)c);
+                } else {
+                    append_hex_escape(strbuf, c);
+                    break;
+                }
+            }
+        }
+        String_Buffer_append_char(strbuf, '"');
+        String_Buffer_to_string(strbuf, outstrptr, outlenptr);
+    }
+}
 
 static const char8_t* append_octal(const char8_t* instr, char8_t* buf,
                                    size_t* buflenptr) {
@@ -202,6 +320,8 @@ void ELTN_unquote_long_string(ELTN_Pool* h,
     size_t new_length;
     size_t quote_length;
 
+    // TODO: merge common code with trim_comment(...), below
+
     // assert instr[0] == "["
     // assert instr[inlen-1] == "]"
     new_start = 1;
@@ -226,13 +346,27 @@ void ELTN_unquote_long_string(ELTN_Pool* h,
     ELTN_copy_string(h, outstrptr, outlenptr, instr + new_start, new_length);
 }
 
+
+void ELTN_format_comment(ELTN_Pool * h,
+                         const char8_t* instr, const size_t inlen,
+                         char8_t** outstrptr, size_t* outlenptr) {
+    // TODO: if string has newlines or is greater than 80 chars
+    // TODO: - scan `instr` for long quotes
+    // TODO: - format as "--" + long string
+    // TODO: else:
+    // TODO: - precede with "--"
+    // TODO: - end with "\n"
+}
+
+
 void ELTN_trim_comment(ELTN_Pool* h, const char8_t* instr, const size_t inlen,
                        char8_t** outstrptr, size_t* outlenptr) {
-
     size_t new_start;
     size_t new_length;
     size_t quote_length;
     bool notaquote;
+
+    // TODO: merge common code with quote_long_string(...), below
 
     //assert instr[0:1] == "--"
     if (instr[2] != '[') {

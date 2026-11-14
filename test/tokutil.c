@@ -20,6 +20,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include <stdlib.h>
 #include <string.h>
 #include "minctest.h"
 #include "etokutil.h"
@@ -164,6 +165,54 @@ void long_comment_not() {
     lsequal(expect, (const char*)str);
 }
 
+void quoted_string() {
+    const char* input = "This is a\trandom\nstring with \" quotes";
+    const char* expect = "\"This is a\\trandom\\nstring with \\\" quotes\"";
+    int expectlen = (int)strlen(expect);
+    char* actual = NULL;
+    size_t actual_len = 0;
+
+    ELTN_quote_string(NULL, input, strlen(input), &actual, &actual_len);
+    lequal(expectlen, (int)actual_len);
+    lok(actual != NULL);
+    if (actual != NULL) {
+        lsequal(expect, actual);
+    }
+    free(actual);
+}
+
+void quoted_string_with_utf8() {
+    const char* input = "This string has unicode: \u20AC See?";
+    const char* expect = "\"This string has unicode: \u20AC See?\"";
+    int expectlen = (int)strlen(expect);
+    char* actual = NULL;
+    size_t actual_len = 0;
+
+    ELTN_quote_string(NULL, input, strlen(input), &actual, &actual_len);
+    lequal(expectlen, (int)actual_len);
+    lok(actual != NULL);
+    if (actual != NULL) {
+        lsequal(expect, actual);
+    }
+    free(actual);
+}
+
+void quoted_string_with_latin1() {
+    const char* input = "This string has Latin-1: \xC7 See?";
+    const char* expect = "\"This string has Latin-1: \xC7 See?\"";
+    int expectlen = (int)strlen(expect);
+    char* actual = NULL;
+    size_t actual_len = 0;
+
+    ELTN_quote_string(NULL, input, strlen(input), &actual, &actual_len);
+    lequal(expectlen, (int)actual_len);
+    lok(actual != NULL);
+    if (actual != NULL) {
+        lsequal(expect, actual);
+    }
+    free(actual);
+}
+
 /*
  * TODO: test bad escape sequences and missing quotes.
  */
@@ -181,6 +230,9 @@ int main() {
     lrun("test_comment_content", comment_content);
     lrun("test_long_comment_content", long_comment_content);
     lrun("test_long_comment_not", long_comment_content);
+    lrun("test_quoted_string", quoted_string);
+    lrun("test_quoted_string_with_utf8", quoted_string_with_utf8);
+    lrun("test_quoted_string_with_latin1", quoted_string_with_latin1);
     lresults();
     return lfails != 0;
 }

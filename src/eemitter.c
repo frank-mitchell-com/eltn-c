@@ -32,6 +32,7 @@
 #include "ealloc.h"
 #include "ekeyset.h"
 #include "etokutil.h"
+#include "estrbuf.h"
 
 #define INIT_BUFFER_SIZE   1024
 
@@ -59,6 +60,7 @@ struct Key_Stack_Frame {
     Key_Set* previous_keys;
     unsigned int depth;
     unsigned int last_implicit_key;
+    bool is_def_table;
 };
 
 struct ELTN_Emitter {
@@ -176,6 +178,7 @@ static void push_stack(ELTN_Emitter* self) {
     newframe->last_key_size = 0;
     newframe->previous_keys = Key_Set_new_with_pool(self->pool);
     newframe->last_implicit_key = 0;
+    newframe->is_def_table = false;
 
     newframe->next = self->top;
     self->top = newframe;
@@ -203,7 +206,8 @@ static void set_last_key(ELTN_Emitter* self, const char* key, size_t keylen) {
     size_t copysiz;
 
     if (self->top != NULL) {
-        ELTN_copy_string(self->pool, &copystr, &copysiz, (const char8_t*) key, keylen);
+        ELTN_copy_string(self->pool, &copystr, &copysiz,
+                         (const char8_t*) key, keylen);
         if (self->top->last_key != NULL) {
             ELTN_free(self->pool, self->top->last_key);
         }
@@ -220,46 +224,36 @@ static void raise_error(ELTN_Emitter* self, ELTN_Error errcode) {
     }
 }
 
-bool is_identifier(const char* string, size_t strlen) {
-    if (strlen == 0) {
-        return false;
-    }
-    if (!ELTN_is_name_start(string[0])) {
-        return false;
-    }
-    for (size_t i = 1; i < strlen; i++) {
-        if (!ELTN_is_name_part(string[i])) {
-            return false;
-        }
-    }
-    return true;
-}
-
 ELTN_API bool ELTN_Emitter_def_name(ELTN_Emitter* self, const char* n) {
-    size_t length = strlen(n);
+    size_t length = strlen(n); // TODO: Unsafe!
     char buffer[length + 4];
 
     if (self->top == NULL) {
         push_stack(self);
+        self->top->is_def_table = true;
     }
 
     // check that name is an identifier (unqualified error)
-    if (!is_identifier(n, length)) {
+    if (!ELTN_is_name(n)) {
         raise_error(self, ELTN_ERR_INVALID_TOKEN);
         return false;
     }
 
-    // TODO: check that string is not a keyword (unqualified error)
+    // check that string is not a keyword (unqualified error)
+    if (ELTN_is_keyword(n)) {
+        raise_error(self, ELTN_ERR_INVALID_TOKEN);
+        return false;
+    }
 
     // check that name isn't a duplicate key (unqualified error)
     if (Key_Set_has_key(self->top->previous_keys, KEY_SET_STRING,
-                       (const char8_t*)n, length)) {
+                        (const char8_t*)n, length)) {
         raise_error(self, ELTN_ERR_DUPLICATE_KEY);
         return false;
     }
 
     // check that we are at the top level (BAD form but let's say not an error).
-    if (self->depth > 0) {
+    if (!self->top->is_def_table) {
         return ELTN_Emitter_key_string(self, n, length);
     }
 
@@ -273,7 +267,7 @@ ELTN_API bool ELTN_Emitter_def_name(ELTN_Emitter* self, const char* n) {
 
 ELTN_API bool ELTN_Emitter_key_string(ELTN_Emitter* self, const char* s,
                                       size_t len) {
-    // TODO: check that the preceding Node is a value or table.
+    // TODO: check that the preceding Node is a VALUE_* or TABLE_START.
     // TODO: check that key is not a keyword (must be quoted)
     // TODO: check that key is an identifier (otherwise must be quoted)
     // TODO: check that key is not a duplicate (unqualified error)
@@ -404,31 +398,11 @@ ELTN_API ssize_t ELTN_Emitter_length(ELTN_Emitter* self) {
     return ELTN_Emitter_write(self, Length_Writer, &buffer);
 }
 
-
-typedef struct String_Buffer {
-    char* buffer;
-    size_t buffer_size;
-    size_t buffer_used;
-} String_Buffer;
-
 static int String_Buffer_Writer(void *state, const char* text, size_t size,
                                 size_t* nwriteptr) {
     String_Buffer* strbuf = (String_Buffer*)state;
 
-    if (strbuf->buffer == NULL 
-            || strbuf->buffer_used + size >= strbuf->buffer_size) {
-        size_t newsize = strbuf->buffer_size + INIT_BUFFER_SIZE;
-        char* result =
-            (char *)ELTN_realloc(NULL, strbuf->buffer, newsize);
-        if (result == NULL) {
-            return errno != 0 ? errno : -1;
-        }
-        strbuf->buffer = result;
-        strbuf->buffer_size = newsize;
-    }
-
-    memcpy(strbuf->buffer + strbuf->buffer_used, text, size);
-    strbuf->buffer_used += size;
+    String_Buffer_append_string(strbuf, text, size);
     (*nwriteptr) = size;
     return 0;
 }
@@ -436,22 +410,16 @@ static int String_Buffer_Writer(void *state, const char* text, size_t size,
 ELTN_API void ELTN_Emitter_write_string(ELTN_Emitter* self, char** strptr,
                                         size_t* lenptr) {
     ssize_t nwritten = 0;
-    String_Buffer buffer;
+    String_Buffer* buffer = String_Buffer_new_with_pool(NULL);
     
-    buffer.buffer = ELTN_alloc(NULL, INIT_BUFFER_SIZE);
-    buffer.buffer_size = INIT_BUFFER_SIZE;
-    buffer.buffer_used = 0;
-
-    nwritten = ELTN_Emitter_write(self, String_Buffer_Writer, &buffer);
+    nwritten = ELTN_Emitter_write(self, String_Buffer_Writer, buffer);
     if (nwritten < 0 && self->error_code == ELTN_OK) {
         self->error_code = ELTN_ERR_UNKNOWN;
     }
 
-    if (buffer.buffer_used < buffer.buffer_size) {
-        buffer.buffer[buffer.buffer_used] = '\0';
-    }
-    (*strptr) = buffer.buffer;
-    (*lenptr) = buffer.buffer_used;
+    //String_Buffer_append_char(buffer, '\0');
+    String_Buffer_to_string(buffer, strptr, lenptr);
+    String_Buffer_free(buffer);
 }
 
 static const char* repeat(char c, unsigned int reps) {
@@ -480,7 +448,7 @@ static const char* repeat(char c, unsigned int reps) {
     return buf;
 }
 
-static end_of_line(ELTN_Event event) {
+static bool end_of_line(ELTN_Event event) {
     switch (event) {
         case ELTN_DEF_NAME:
         case ELTN_KEY_STRING:
