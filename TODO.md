@@ -23,16 +23,14 @@ Coding
 ### Emitter
 
 - Implement Emitter
-  - each event method
   - error detection
-  - create final string
   - write to file
 
 ### Other Concerns
 
 - List of error codes
   - every error needs a distinct code
-  - pass messages up from Source (?) and Lexer
+  - pass messages up from Buffer and Lexer
 
 
 Testing
@@ -72,17 +70,16 @@ Testing
 ### Emitter
 
 - Test each event method
-  - `ELTN_Emitter_def_name`
   - `ELTN_Emitter_key_string`
+     - non-name keys
+     - long-string keys
   - `ELTN_Emitter_key_number`
   - `ELTN_Emitter_key_integer`
   - `ELTN_Emitter_value_string`
-  - `ELTN_Emitter_value_number`
+     - long string values
   - `ELTN_Emitter_value_integer`
   - `ELTN_Emitter_value_boolean`
   - `ELTN_Emitter_value_nil`
-  - `ELTN_Emitter_table_start`
-  - `ELTN_Emitter_table_end`
   - `ELTN_Emitter_comment`
 
 - Test queries
@@ -101,21 +98,19 @@ Testing
   - key / def-name without value
 
 - Test `ELTN_Emitter_error_path`
-  - normal usage
-  - buffer too short
-
-- Test `ELTN_Emitter_write`
-  - pretty-printed
-  - indented
-  - matches reported length
-
-- Test `ELTN_Emitter_write_string`
-  - normal usage
-  - buffer too short
 
 - Test `ELTN_Emitter_write_file`
   - normal usage
   - error in file write
+
+- Test constraints at top level:
+  - Two top-level productions
+    1. EITHER a definition table
+       - No DEF_NAMEs after the top level
+    2. OR a series ("stream") of tables
+       - No DEF_NAMEs
+   - Every TABLE_END must match a TABLE_START
+   - Every KEY must have a VALUE, although the reverse is not true
 
 ### Other Concerns
 

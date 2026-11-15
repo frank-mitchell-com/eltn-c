@@ -55,9 +55,10 @@ struct Node {
 
 struct Key_Stack_Frame {
     Key_Stack_Frame* next;
+    Key_Stack_Frame* prev;
     char8_t* last_key;
     size_t last_key_size;
-    Key_Set* previous_keys;
+    Key_Set* keys;
     unsigned int depth;
     unsigned int last_implicit_key;
     bool is_def_table;
@@ -77,6 +78,7 @@ struct ELTN_Emitter {
     Node* first;
     Node* last;
     Key_Stack_Frame *top;
+    Key_Stack_Frame *bottom;
     unsigned int depth;
     ELTN_Error error_code;
     char* error_path;
@@ -100,7 +102,7 @@ ELTN_API void ELTN_Emitter_free(ELTN_Emitter* self) {
 
         self->top = self->top->next;
 
-        Key_Set_free(oldframe->previous_keys);
+        Key_Set_free(oldframe->keys);
         if (oldframe->last_key != NULL) {
             ELTN_free(h, oldframe->last_key);
         }
@@ -134,6 +136,7 @@ ELTN_API ELTN_Emitter* ELTN_Emitter_new_with_pool(ELTN_Pool* pool) {
     result->first = NULL;
     result->last = NULL;
     result->top = NULL;
+    result->bottom = NULL;
     result->depth = 0;
     /*
      * Error reporting
@@ -142,6 +145,18 @@ ELTN_API ELTN_Emitter* ELTN_Emitter_new_with_pool(ELTN_Pool* pool) {
     result->error_path = NULL;
     result->error_path_len = 0;
     return result;
+}
+
+static bool is_key(ELTN_Event e) {
+    switch (e) {
+        case ELTN_DEF_NAME:
+        case ELTN_KEY_STRING:
+        case ELTN_KEY_NUMBER:
+        case ELTN_KEY_INTEGER:
+            return true;
+        default:
+            return false;
+    }
 }
 
 static void add_node(ELTN_Emitter* self, ELTN_Event event,
@@ -157,13 +172,13 @@ static void add_node(ELTN_Emitter* self, ELTN_Event event,
 
     // add to last node of linked list
     if (self->first == NULL) {
-        newnode->prev = NULL;
         newnode->next = NULL;
+        newnode->prev = NULL;
         self->first = newnode;
         self->last = newnode;
     } else {
-        newnode->prev = self->last; 
         newnode->next = NULL;
+        newnode->prev = self->last;
         self->last->next = newnode;
         self->last = newnode;
     }
@@ -176,12 +191,19 @@ static void push_stack(ELTN_Emitter* self) {
     newframe->depth = self->depth;
     newframe->last_key = NULL;
     newframe->last_key_size = 0;
-    newframe->previous_keys = Key_Set_new_with_pool(self->pool);
+    newframe->keys = Key_Set_new_with_pool(self->pool);
     newframe->last_implicit_key = 0;
     newframe->is_def_table = false;
 
     newframe->next = self->top;
+    newframe->prev = NULL;
+    if (self->top != NULL) {
+        self->top->prev = newframe;
+    }
     self->top = newframe;
+    if (self->bottom == NULL) {
+        self->bottom = newframe;
+    }
 }
 
 static void pop_stack(ELTN_Emitter* self) {
@@ -192,9 +214,12 @@ static void pop_stack(ELTN_Emitter* self) {
     }
     // pop frame onto top of stack
     self->top = oldframe->next;
+    if (self->top != NULL) {
+        self->top->prev = NULL;
+    }
 
     // free space of oldframe
-    Key_Set_free(oldframe->previous_keys);
+    Key_Set_free(oldframe->keys);
     if (oldframe->last_key != NULL) {
         ELTN_free(self->pool, oldframe->last_key);
     }
@@ -216,23 +241,37 @@ static void set_last_key(ELTN_Emitter* self, const char* key, size_t keylen) {
     }
 }
 
+static bool handle_possible_sequence(ELTN_Emitter* self) {
+    char buffer[INIT_BUFFER_SIZE];
+
+    if (self->last != NULL && self->last->prev != NULL) {
+        if (!is_key(self->last->event) && self->top != NULL) {
+            /*
+             * If not preceded by a key, the node for a VALUE is
+             * part of an implicit sequence in the table.
+             * Treat this key *almost* like an explicit key.
+             */
+            int newkey = ++(self->top->last_implicit_key);
+            size_t len;
+
+            memset(buffer, 0, sizeof(buffer));
+            len = snprintf(buffer, sizeof(buffer), "%d", newkey);
+            if (Key_Set_has_key(self->top->keys, KEY_SET_NUMBER, buffer, len)) {
+                return false;
+            }
+            Key_Set_add_key(self->top->keys, KEY_SET_NUMBER, buffer, len);
+            len = snprintf(buffer, sizeof(buffer), "[%d]", newkey);
+            set_last_key(self, buffer, len);
+        }
+    }
+    return true;
+}
+
 static void raise_error(ELTN_Emitter* self, ELTN_Error errcode) {
     // TODO: Should this be an error list?
     if (self->error_code == ELTN_OK) {
         self->error_code = errcode;
         // compute error_path from stack's current keys
-    }
-}
-
-static bool is_key(ELTN_Event e) {
-    switch (e) {
-        case ELTN_DEF_NAME:
-        case ELTN_KEY_STRING:
-        case ELTN_KEY_NUMBER:
-        case ELTN_KEY_INTEGER:
-            return true;
-        default:
-            return false;
     }
 }
 
@@ -268,7 +307,7 @@ ELTN_API bool ELTN_Emitter_def_name(ELTN_Emitter* self, const char* n) {
     }
 
     // check that name isn't a duplicate key (unqualified error)
-    if (Key_Set_has_key(self->top->previous_keys, KEY_SET_STRING,
+    if (Key_Set_has_key(self->top->keys, KEY_SET_STRING,
                         (const char8_t*)n, length)) {
         raise_error(self, ELTN_ERR_DUPLICATE_KEY);
         return false;
@@ -282,7 +321,7 @@ ELTN_API bool ELTN_Emitter_def_name(ELTN_Emitter* self, const char* n) {
     snprintf(buffer, sizeof(buffer), "%s = ", n);
     add_node(self, ELTN_DEF_NAME, buffer, strlen(buffer));
     set_last_key(self, n, length);
-    Key_Set_add_key(self->top->previous_keys, KEY_SET_STRING,
+    Key_Set_add_key(self->top->keys, KEY_SET_STRING,
                     (const char8_t*)n, length);
     return true;
 }
@@ -296,7 +335,7 @@ ELTN_API bool ELTN_Emitter_key_string(ELTN_Emitter* self, const char* s,
     }
 
     // check that name isn't a duplicate key (unqualified error)
-    if (Key_Set_has_key(self->top->previous_keys, KEY_SET_STRING,
+    if (Key_Set_has_key(self->top->keys, KEY_SET_STRING,
                         (const char8_t*)s, len)) {
         raise_error(self, ELTN_ERR_DUPLICATE_KEY);
         return false;
@@ -310,7 +349,7 @@ ELTN_API bool ELTN_Emitter_key_string(ELTN_Emitter* self, const char* s,
         snprintf(buffer, sizeof(buffer), "%*s = ", (int)len, s);
         add_node(self, ELTN_KEY_STRING, buffer, strlen(buffer));
         set_last_key(self, s, len);
-        Key_Set_add_key(self->top->previous_keys, KEY_SET_STRING,
+        Key_Set_add_key(self->top->keys, KEY_SET_STRING,
                         (const char8_t*)s, len);
     } else {
         String_Buffer* outbuf = String_Buffer_new_with_pool(self->pool);
@@ -328,7 +367,7 @@ ELTN_API bool ELTN_Emitter_key_string(ELTN_Emitter* self, const char* s,
 
         add_node(self, ELTN_KEY_STRING, outstr, outlen);
         set_last_key(self, outstr, outlen - 3);
-        Key_Set_add_key(self->top->previous_keys, KEY_SET_STRING,
+        Key_Set_add_key(self->top->keys, KEY_SET_STRING,
                         (const char8_t*)s, len);
 
         ELTN_free(self->pool, quoted_string);
@@ -353,12 +392,12 @@ ELTN_API bool ELTN_Emitter_key_number(ELTN_Emitter* self, double n) {
     snprintf(buffer, sizeof(buffer)-1, "%g", n);
     bufferlen = strlen(buffer);
 
-    if (Key_Set_has_key(self->top->previous_keys, KEY_SET_NUMBER,
+    if (Key_Set_has_key(self->top->keys, KEY_SET_NUMBER,
                         (const char8_t*)buffer, bufferlen)) {
         raise_error(self, ELTN_ERR_DUPLICATE_KEY);
         return false;
     }
-    Key_Set_add_key(self->top->previous_keys, KEY_SET_NUMBER,
+    Key_Set_add_key(self->top->keys, KEY_SET_NUMBER,
                     (const char8_t*)buffer, bufferlen);
 
     // format the number with "[" ... "]" for a non-name key 
@@ -385,12 +424,12 @@ ELTN_API bool ELTN_Emitter_key_integer(ELTN_Emitter* self, long int i) {
     snprintf(buffer, sizeof(buffer)-1, "%ld", i);
     bufferlen = strlen(buffer);
 
-    if (Key_Set_has_key(self->top->previous_keys, KEY_SET_NUMBER,
+    if (Key_Set_has_key(self->top->keys, KEY_SET_NUMBER,
                         (const char8_t*)buffer, bufferlen)) {
         raise_error(self, ELTN_ERR_DUPLICATE_KEY);
         return false;
     }
-    Key_Set_add_key(self->top->previous_keys, KEY_SET_NUMBER,
+    Key_Set_add_key(self->top->keys, KEY_SET_NUMBER,
                     (const char8_t*)buffer, bufferlen);
 
     // format the number with "[" ... "]" for a non-name key 
@@ -409,6 +448,11 @@ ELTN_API bool ELTN_Emitter_value_string(ELTN_Emitter* self, const char* s,
     char* quoted_string;
     size_t quoted_length;
 
+    if (!handle_possible_sequence(self)) {
+        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
+        return false;
+    }
+
     ELTN_quote_string(self->pool, (const char8_t*)s, len, (char8_t**) &quoted_string, &quoted_length);
 
     add_node(self, ELTN_KEY_STRING, quoted_string, quoted_length);
@@ -424,6 +468,11 @@ ELTN_API bool ELTN_Emitter_value_number(ELTN_Emitter* self, double n) {
     char buffer[INIT_BUFFER_SIZE];
     char sep = (self->depth == 0) ? ';' : ',';
 
+    if (!handle_possible_sequence(self)) {
+        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
+        return false;
+    }
+
     memset(buffer, 0, sizeof(buffer));
     snprintf(buffer, sizeof(buffer)-1, "%g%c", n, sep);
     add_node(self, ELTN_VALUE_NUMBER, buffer, strlen(buffer));
@@ -434,6 +483,11 @@ ELTN_API bool ELTN_Emitter_value_integer(ELTN_Emitter* self, long int i) {
     char buffer[INIT_BUFFER_SIZE];
     char sep = (self->depth == 0) ? ';' : ',';
 
+    if (!handle_possible_sequence(self)) {
+        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
+        return false;
+    }
+
     memset(buffer, 0, sizeof(buffer));
     snprintf(buffer, sizeof(buffer)-1, "%ld%c", i, sep);
     add_node(self, ELTN_VALUE_INTEGER, buffer, strlen(buffer));
@@ -443,6 +497,11 @@ ELTN_API bool ELTN_Emitter_value_integer(ELTN_Emitter* self, long int i) {
 ELTN_API bool ELTN_Emitter_value_boolean(ELTN_Emitter* self, bool b) {
     char buffer[INIT_BUFFER_SIZE];
     char sep = (self->depth == 0) ? ';' : ',';
+
+    if (!handle_possible_sequence(self)) {
+        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
+        return false;
+    }
 
     memset(buffer, 0, sizeof(buffer));
     if (b) {
@@ -459,6 +518,11 @@ ELTN_API bool ELTN_Emitter_value_nil(ELTN_Emitter* self) {
     char buffer[INIT_BUFFER_SIZE];
     char sep = (self->depth == 0) ? ';' : ',';
 
+    if (!handle_possible_sequence(self)) {
+        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
+        return false;
+    }
+
     memset(buffer, 0, sizeof(buffer));
     snprintf(buffer, sizeof(buffer)-1, "nil%c", sep);
     add_node(self, ELTN_VALUE_NIL, buffer, strlen(buffer));
@@ -473,9 +537,19 @@ ELTN_API bool ELTN_Emitter_table_start(ELTN_Emitter* self) {
 }
 
 ELTN_API bool ELTN_Emitter_table_end(ELTN_Emitter* self) {
-    if (self->depth > 0) {
-        self->depth--;
+    // check that the preceding Node is not another key (unqualified error)
+    if (last_node_was_key(self)) {
+        raise_error(self, ELTN_ERR_UNEXPECTED_TOKEN);
+        return false;
     }
+
+    // if at the top level, an ELTN_TABLE_END would close nothing
+    if (self->depth == 0) {
+        raise_error(self, ELTN_ERR_UNEXPECTED_TOKEN);
+        return false;
+    }
+
+    self->depth--;
     add_node(self, ELTN_TABLE_END, "}", 1);
     pop_stack(self);
     return true;
@@ -499,8 +573,19 @@ ELTN_API unsigned int ELTN_Emitter_current_depth(ELTN_Emitter * self) {
 
 ELTN_API void ELTN_Emitter_current_path(ELTN_Emitter * self, char** strptr,
                                         size_t* lenptr) {
-    // TODO: derive path from Key_Stack_Frames
-    ELTN_new_string(strptr, lenptr, "", 0);
+    String_Buffer* path = String_Buffer_new_with_pool(NULL);
+    bool first = true;
+
+    for (Key_Stack_Frame* f = self->bottom; f != NULL; f = f->prev) {
+        if (f->last_key != NULL) {
+            if (f->last_key[0] != '[' && !first) {
+                String_Buffer_append_char(path, '.');
+            }
+            String_Buffer_append_string(path, (const char *)f->last_key, f->last_key_size);
+            first = false;
+        }
+    }
+    String_Buffer_to_string(path, strptr, lenptr);
 }
 
 ELTN_API ELTN_Error ELTN_Emitter_error_code(ELTN_Emitter* self) {
@@ -574,7 +659,6 @@ ELTN_API void ELTN_Emitter_write_string(ELTN_Emitter* self, char** strptr,
         self->error_code = ELTN_ERR_UNKNOWN;
     }
 
-    //String_Buffer_append_char(buffer, '\0');
     String_Buffer_to_string(buffer, strptr, lenptr);
     String_Buffer_free(buffer);
 }

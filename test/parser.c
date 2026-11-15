@@ -654,6 +654,13 @@ void duplicate_key() {
     ELTN_Parser_free(parser);
 }
 
+/*
+ * TODO: verify long strings
+ * TODO: turn on comment events, verify events arrive
+ * TODO: verify comments
+ * TODO: verify long comments
+ */
+
 int main() {
     lrun("test_empty_document", empty_document);
     lrun("test_empty_table", empty_table);

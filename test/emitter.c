@@ -26,7 +26,7 @@
 #include "minctest.h"
 #include "eltn.h"
 
-void debug_string(const char* string, const size_t len) {
+static void debug_string(const char* string, const size_t len) {
     printf("DEBUG: <<");
 
     for (size_t i = 0; i < len; i++) {
@@ -38,6 +38,18 @@ void debug_string(const char* string, const size_t len) {
         }
     }
     printf(">>\n");
+}
+
+static void assert_current_path(ELTN_Emitter* emitter, const char* path) {
+    char* str = NULL;
+    size_t len = 0;
+
+    ELTN_Emitter_current_path(emitter, &str, &len);
+    lok(str != NULL);
+    if (str != NULL) {
+        lsequal(path, str);
+    }
+    free(str);
 }
 
 void emitter_smoke() {
@@ -71,16 +83,22 @@ void emitter_def_table() {
     const int explen = strlen(expected);
 
     ok = (ELTN_Emitter_def_name(emitter, "test"));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
     ok = (ELTN_Emitter_value_number(emitter, 1.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
     ok = (ELTN_Emitter_def_name(emitter, "another"));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
     ok = (ELTN_Emitter_value_number(emitter, 2.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
     ok = (ELTN_Emitter_def_name(emitter, "third"));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
     ok = (ELTN_Emitter_value_number(emitter, 3.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
 
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
@@ -98,34 +116,143 @@ void emitter_def_table() {
     ELTN_Emitter_free(emitter);
 }
 
+
+
 void emitter_table() {
+    const char* expected =
+        "table = {\n    test = 1,\n    another = 2,\n    third = 3,\n}\n";
+    const int explen = strlen(expected);
+
+    ELTN_Emitter* emitter = ELTN_Emitter_new();
+    char* result = NULL;
+    size_t reslen = 0;
+    bool ok = true;
+
+    ok = (ELTN_Emitter_def_name(emitter, "table"));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_table_start(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_key_string(emitter, "test", 4));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 1.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_key_string(emitter, "another", 7));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 2.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_key_string(emitter, "third", 5));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 3.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_table_end(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+
+    ELTN_Emitter_write_string(emitter, &result, &reslen);
+
+    ok = (result != NULL);
+    if (result != NULL) {
+        lsequal(expected, result);
+        lequal(explen, (int)reslen);
+        debug_string(result, reslen);
+        free(result);
+    }
+
+    ELTN_Emitter_free(emitter);
+}
+
+void emitter_current_path() {
     ELTN_Emitter* emitter = ELTN_Emitter_new();
     char* result = NULL;
     size_t reslen = 0;
     bool ok = true;
 
     const char* expected =
-        "table = {\n    test = 1,\n    another = 2,\n    third = 3,\n}\n";
+        "table = {\n"
+        "    count = 3,\n"
+        "    list = {\n"
+        "        1,\n"
+        "        2,\n"
+        "        3,\n"
+        "    }\n"
+        "    total = 6,\n"
+        "}\n";
     const int explen = strlen(expected);
 
     ok = (ELTN_Emitter_def_name(emitter, "table"));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    assert_current_path(emitter, "table");
+
     ok = (ELTN_Emitter_table_start(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
-    ok = (ELTN_Emitter_key_string(emitter, "test", 4));
+    assert_current_path(emitter, "table");
+
+    ok = (ELTN_Emitter_key_string(emitter, "count", 5));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
-    ok = (ELTN_Emitter_value_number(emitter, 1.0));
-    lok(ok);
-    ok = (ELTN_Emitter_key_string(emitter, "another", 7));
-    lok(ok);
-    ok = (ELTN_Emitter_value_number(emitter, 2.0));
-    lok(ok);
-    ok = (ELTN_Emitter_key_string(emitter, "third", 5));
-    lok(ok);
+    assert_current_path(emitter, "table.count");
+
     ok = (ELTN_Emitter_value_number(emitter, 3.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    assert_current_path(emitter, "table.count");
+
+    ok = (ELTN_Emitter_key_string(emitter, "list", 4));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "table.list");
+
+    ok = (ELTN_Emitter_table_start(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "table.list");
+
+    ok = (ELTN_Emitter_value_number(emitter, 1.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "table.list[1]");
+
+    ok = (ELTN_Emitter_value_number(emitter, 2.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "table.list[2]");
+
+    ok = (ELTN_Emitter_value_number(emitter, 3.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "table.list[3]");
+
     ok = (ELTN_Emitter_table_end(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    assert_current_path(emitter, "table.list");
+
+    ok = (ELTN_Emitter_key_string(emitter, "total", 5));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "table.total");
+
+    ok = (ELTN_Emitter_value_number(emitter, 6.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "table.total");
+
+    ok = (ELTN_Emitter_table_end(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "table");
 
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
 
@@ -142,10 +269,23 @@ void emitter_table() {
     ELTN_Emitter_free(emitter);
 }
 
+/*
+ * TODO: test all key types: string, number, integer
+ * TODO: test all value types: string, number, integer, true, false, nil
+ * TODO: test values without keys
+ * TODO: test short comments
+ * TODO: test long comments
+ * TODO: test error path
+ * TODO: on error, other functions disabled (like the parser)
+ * TODO: test without pretty printing
+ * TODO: trst different indent
+ */
+
 int main(void) {
     lrun("test_emitter_smoke", emitter_smoke);
     lrun("test_emitter_def_table", emitter_def_table);
     lrun("test_emitter_table", emitter_table);
+    lrun("test_emitter_current_path", emitter_current_path);
     lresults();
     return lfails != 0;
 }
