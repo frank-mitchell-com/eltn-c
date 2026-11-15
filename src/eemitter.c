@@ -224,20 +224,6 @@ static void raise_error(ELTN_Emitter* self, ELTN_Error errcode) {
     }
 }
 
-static bool is_value(ELTN_Event e) {
-    switch (e) {
-        case ELTN_VALUE_STRING:
-        case ELTN_VALUE_NUMBER:
-        case ELTN_VALUE_INTEGER:
-        case ELTN_VALUE_TRUE:
-        case ELTN_VALUE_FALSE:
-        case ELTN_VALUE_NIL:
-            return true;
-        default:
-            return false;
-    }
-}
-
 static bool is_key(ELTN_Event e) {
     switch (e) {
         case ELTN_DEF_NAME:
@@ -368,7 +354,7 @@ ELTN_API bool ELTN_Emitter_key_number(ELTN_Emitter* self, double n) {
     bufferlen = strlen(buffer);
 
     if (Key_Set_has_key(self->top->previous_keys, KEY_SET_NUMBER,
-                        buffer, bufferlen)) {
+                        (const char8_t*)buffer, bufferlen)) {
         raise_error(self, ELTN_ERR_DUPLICATE_KEY);
         return false;
     }
@@ -400,7 +386,7 @@ ELTN_API bool ELTN_Emitter_key_integer(ELTN_Emitter* self, long int i) {
     bufferlen = strlen(buffer);
 
     if (Key_Set_has_key(self->top->previous_keys, KEY_SET_NUMBER,
-                        buffer, bufferlen)) {
+                        (const char8_t*)buffer, bufferlen)) {
         raise_error(self, ELTN_ERR_DUPLICATE_KEY);
         return false;
     }
@@ -423,12 +409,12 @@ ELTN_API bool ELTN_Emitter_value_string(ELTN_Emitter* self, const char* s,
     char* quoted_string;
     size_t quoted_length;
 
-    ELTN_quote_string(self->pool, s, len, &quoted_string, &quoted_length);
+    ELTN_quote_string(self->pool, (const char8_t*)s, len, (char8_t**) &quoted_string, &quoted_length);
 
     add_node(self, ELTN_KEY_STRING, quoted_string, quoted_length);
 
     memset(buffer, 0, sizeof(buffer));
-    snprintf(buffer, sizeof(buffer)-1, "%*s%c", quoted_length, quoted_string, sep);
+    snprintf(buffer, sizeof(buffer)-1, "%*s%c", (int)quoted_length, quoted_string, sep);
     add_node(self, ELTN_VALUE_STRING, buffer, strlen(buffer));
     ELTN_free(self->pool, quoted_string);
     return true;
@@ -499,8 +485,8 @@ ELTN_API bool ELTN_Emitter_comment(ELTN_Emitter* self, const char* s, size_t len
     char8_t* outstr;
     size_t outlen;
 
-    ELTN_format_comment(self->pool, s, len, &outstr, &outlen);
-    add_node(self, ELTN_COMMENT, outstr, outlen);
+    ELTN_format_comment(self->pool, (const char8_t*)s, len, &outstr, &outlen);
+    add_node(self, ELTN_COMMENT, (const char*)outstr, outlen);
     ELTN_free(self->pool, outstr);
     return false;
 }

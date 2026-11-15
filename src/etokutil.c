@@ -49,7 +49,6 @@ const char* KEYWORDS[] = {
 
 bool ELTN_is_keyword_string(const char* wordstr, size_t wordlen) {
     char word[wordlen + 1];
-    bool result;
 
     memset(word, 0, sizeof(word));
     strncpy(word, wordstr, wordlen);
@@ -76,7 +75,6 @@ bool ELTN_is_keyword(const char* word) {
 
 bool ELTN_is_name_string(const char* wordstr, size_t wordlen) {
     char word[wordlen + 1];
-    bool result;
 
     memset(word, 0, sizeof(word));
     strncpy(word, wordstr, wordlen);
