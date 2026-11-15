@@ -40,6 +40,8 @@ void String_Buffer_append_string(String_Buffer* self, const char* s, size_t len)
 
 void String_Buffer_to_string(String_Buffer* self, char** outstr, size_t* outlen);
 
+void String_Buffer_clear(String_Buffer* self);
+
 void String_Buffer_free(String_Buffer* self);
 
 #endif /* __ELTN_STRING_BUFFER */

@@ -32,7 +32,11 @@
 
 bool ELTN_is_keyword(const char* word);
 
+bool ELTN_is_keyword_string(const char* word, size_t wordlen);
+
 bool ELTN_is_name(const char* word);
+
+bool ELTN_is_name_string(const char* word, size_t wordlen);
 
 void ELTN_quote_string(ELTN_Pool * h,
                        const char8_t * instr, const size_t inlen,

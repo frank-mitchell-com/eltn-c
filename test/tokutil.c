@@ -172,7 +172,8 @@ void quoted_string() {
     char* actual = NULL;
     size_t actual_len = 0;
 
-    ELTN_quote_string(NULL, input, strlen(input), &actual, &actual_len);
+    ELTN_quote_string(NULL, (const char8_t *)input, strlen(input),
+                      (char8_t **)&actual, &actual_len);
     lequal(expectlen, (int)actual_len);
     lok(actual != NULL);
     if (actual != NULL) {
@@ -188,7 +189,8 @@ void quoted_string_with_utf8() {
     char* actual = NULL;
     size_t actual_len = 0;
 
-    ELTN_quote_string(NULL, input, strlen(input), &actual, &actual_len);
+    ELTN_quote_string(NULL, (const char8_t *)input, strlen(input),
+                      (char8_t **)&actual, &actual_len);
     lequal(expectlen, (int)actual_len);
     lok(actual != NULL);
     if (actual != NULL) {
@@ -204,16 +206,88 @@ void quoted_string_with_latin1() {
     char* actual = NULL;
     size_t actual_len = 0;
 
-    ELTN_quote_string(NULL, input, strlen(input), &actual, &actual_len);
+    ELTN_quote_string(NULL, (const char8_t*)input, strlen(input),
+                      (char8_t**)&actual, &actual_len);
     lequal(expectlen, (int)actual_len);
     lok(actual != NULL);
     if (actual != NULL) {
-        lsequal(expect, actual);
+        lsequal(expect, (char *)actual);
+    }
+    free(actual);
+}
+
+void quoted_long_string() {
+    const char* input = 
+        "This is a long string both syntactically\n"
+        "and in fact, since it contains [[confusing]] long quotes"
+        "[=[inside it]=]";
+    const char* expect = 
+        "[==[" 
+        "This is a long string both syntactically\n"
+        "and in fact, since it contains [[confusing]] long quotes"
+        "[=[inside it]=]"
+        "]==]";
+    int expectlen = (int)strlen(expect);
+    char* actual = NULL;
+    size_t actual_len = 0;
+
+    ELTN_quote_string(NULL, (const char8_t*)input, strlen(input),
+                      (char8_t**)&actual, &actual_len);
+    lequal(expectlen, (int)actual_len);
+    lok(actual != NULL);
+    if (actual != NULL) {
+        lsequal(expect, (char *)actual);
+    }
+    free(actual);
+}
+
+void formatted_comment() {
+    const char* input = 
+        "This is a short comment with no newlines";
+    const char* expect = 
+        "-- This is a short comment with no newlines\n";
+    int expectlen = (int)strlen(expect);
+    char* actual = NULL;
+    size_t actual_len = 0;
+
+    ELTN_format_comment(NULL, (const char8_t*)input, strlen(input),
+                        (char8_t**)&actual, &actual_len);
+    lequal(expectlen, (int)actual_len);
+    lok(actual != NULL);
+    if (actual != NULL) {
+        lsequal(expect, (char *)actual);
+    }
+    free(actual);
+}
+
+void formatted_long_comment() {
+    const char* input = 
+        "This is a long string both syntactically\n"
+        "and in fact, since it contains [[confusing]] long quotes"
+        "[=[inside it]=]";
+    const char* expect = 
+        "--[==[" 
+        "This is a long string both syntactically\n"
+        "and in fact, since it contains [[confusing]] long quotes"
+        "[=[inside it]=]"
+        "]==]";
+    int expectlen = (int)strlen(expect);
+    char* actual = NULL;
+    size_t actual_len = 0;
+
+    ELTN_format_comment(NULL, (const char8_t*)input, strlen(input),
+                        (char8_t**)&actual, &actual_len);
+    lequal(expectlen, (int)actual_len);
+    lok(actual != NULL);
+    if (actual != NULL) {
+        lsequal(expect, (char *)actual);
     }
     free(actual);
 }
 
 /*
+ * TODO: test quoting long strings
+ * TODO: test formatting comments (long and short)
  * TODO: test bad escape sequences and missing quotes.
  */
 
@@ -233,6 +307,10 @@ int main() {
     lrun("test_quoted_string", quoted_string);
     lrun("test_quoted_string_with_utf8", quoted_string_with_utf8);
     lrun("test_quoted_string_with_latin1", quoted_string_with_latin1);
+    lrun("test_quoted_long_string", quoted_long_string);
+    lrun("test_formatted_comment", formatted_comment);
+    lrun("test_formatted_long_comment", formatted_long_comment);
+
     lresults();
     return lfails != 0;
 }

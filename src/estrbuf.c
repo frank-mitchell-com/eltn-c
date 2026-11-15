@@ -93,6 +93,15 @@ void String_Buffer_to_string(String_Buffer* self, char** outstr, size_t* outlen)
     self->size = 0;
 }
 
+void String_Buffer_clear(String_Buffer* self) {
+    if (self->bytes != NULL) {
+        ELTN_free(self->pool, self->bytes);
+        self->bytes = NULL;
+        self->used = 0;
+        self->size = 0;
+    }
+}
+
 void String_Buffer_free(String_Buffer* self) {
     if (self->bytes != NULL) {
         ELTN_free(self->pool, self->bytes);

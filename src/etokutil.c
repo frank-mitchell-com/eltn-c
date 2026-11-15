@@ -32,6 +32,10 @@
 
 #define KEYWORDS_SIZE 22
 
+#define BUFFER_SIZE   64
+
+#define LONG_STRING_THRESHOLD   80
+
 /*
  * Keywords in Lua 5.4.  5.5 adds "global", but it's a "soft" keyword
  * and might also be a NAME token.
@@ -43,6 +47,15 @@ const char* KEYWORDS[] = {
     "then", "true", "until", "while"
 };
 
+bool ELTN_is_keyword_string(const char* wordstr, size_t wordlen) {
+    char word[wordlen + 1];
+    bool result;
+
+    memset(word, 0, sizeof(word));
+    strncpy(word, wordstr, wordlen);
+    return ELTN_is_keyword(word);
+}
+
 static int strptrcmp(const void* a, const void* b) {
     const char** astrptr = (const char **)a;
     const char** bstrptr = (const char **)b;
@@ -51,10 +64,23 @@ static int strptrcmp(const void* a, const void* b) {
 }
 
 bool ELTN_is_keyword(const char* word) {
-    void* result =
-        bsearch(&word, KEYWORDS, KEYWORDS_SIZE, sizeof(char8_t *), strptrcmp);
+    void* result;
+    if (word == NULL) {
+        return false;
+    }
+    result =
+        bsearch(&word, KEYWORDS, KEYWORDS_SIZE, sizeof(char *), strptrcmp);
 
     return result != NULL;
+}
+
+bool ELTN_is_name_string(const char* wordstr, size_t wordlen) {
+    char word[wordlen + 1];
+    bool result;
+
+    memset(word, 0, sizeof(word));
+    strncpy(word, wordstr, wordlen);
+    return ELTN_is_name(word);
 }
 
 bool ELTN_is_name(const char* word) {
@@ -74,11 +100,64 @@ bool ELTN_is_name(const char* word) {
     return true;
 }
 
+static const char* strnstr(const char* instr, const size_t inlen,
+                           const char* searchstr, const size_t searchlen) {
+    const char* result = NULL;
+    for (size_t i = 0; i < inlen && result == NULL; i++) {
+        if (strncmp(instr + i, searchstr, searchlen) == 0) {
+            result = instr + i;
+            break;
+        }
+    }
+    return result;
+}
+
 static void ELTN_quote_long_string(ELTN_Pool * h,
                        const char8_t* instr, const size_t inlen,
                        char8_t** outstrptr, size_t* outlenptr) {
-    // TODO: scan instr for long quote marks
-    // TODO: bracket with non-conflicting long quotes
+    int quote_level = -1;
+    char* last_quote = NULL;
+    size_t last_quote_len = 0;
+    String_Buffer* lqbuffer = String_Buffer_new_with_pool(h);
+    String_Buffer* outbuffer;
+
+    // scan instr for long quote marks
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        String_Buffer_clear(lqbuffer);
+        String_Buffer_append_char(lqbuffer, ']');
+        for (int j = 0; j < i; j++) {
+            String_Buffer_append_char(lqbuffer, '=');
+        }
+        String_Buffer_append_char(lqbuffer, ']');
+        String_Buffer_to_string(lqbuffer, &last_quote, &last_quote_len);
+        /*
+         * Can't use strstr() here because instr may not be null-terminated
+         */
+        if (strnstr((const char *)instr, inlen, (const char *)last_quote, last_quote_len) == NULL) {
+            quote_level = i;
+            break;
+        }
+        ELTN_free(h, last_quote);
+    }
+    String_Buffer_free(lqbuffer);
+
+    // bracket with non-conflicting long quotes
+    outbuffer = String_Buffer_new_with_pool(h);
+    if (quote_level < 0) {
+        (*outstrptr) = NULL;
+        (*outlenptr) = 0;
+        return;
+    }
+    String_Buffer_append_char(outbuffer, '[');
+    for (int j = 0; j < quote_level; j++) {
+        String_Buffer_append_char(outbuffer, '=');
+    }
+    String_Buffer_append_char(outbuffer, '[');
+    String_Buffer_append_string(outbuffer, (const char*)instr, inlen);
+    String_Buffer_append_string(outbuffer, last_quote, last_quote_len);
+    ELTN_free(h, last_quote);
+    String_Buffer_to_string(outbuffer, (char **)outstrptr, outlenptr);
+    String_Buffer_free(outbuffer);
 }
 
 static void append_hex_escape(String_Buffer* strbuf, char8_t c) {
@@ -93,7 +172,7 @@ static void append_hex_escape(String_Buffer* strbuf, char8_t c) {
 void ELTN_quote_string(ELTN_Pool * h,
                        const char8_t* instr, const size_t inlen,
                        char8_t** outstrptr, size_t* outlenptr) {
-    if (inlen > 80) {
+    if (inlen > LONG_STRING_THRESHOLD) {
         ELTN_quote_long_string(h, instr, inlen, outstrptr, outlenptr);
     } else {
         String_Buffer* strbuf = String_Buffer_new_with_pool(h);
@@ -143,7 +222,7 @@ void ELTN_quote_string(ELTN_Pool * h,
             }
         }
         String_Buffer_append_char(strbuf, '"');
-        String_Buffer_to_string(strbuf, outstrptr, outlenptr);
+        String_Buffer_to_string(strbuf, (char **)outstrptr, outlenptr);
     }
 }
 
@@ -350,12 +429,24 @@ void ELTN_unquote_long_string(ELTN_Pool* h,
 void ELTN_format_comment(ELTN_Pool * h,
                          const char8_t* instr, const size_t inlen,
                          char8_t** outstrptr, size_t* outlenptr) {
-    // TODO: if string has newlines or is greater than 80 chars
-    // TODO: - scan `instr` for long quotes
-    // TODO: - format as "--" + long string
-    // TODO: else:
-    // TODO: - precede with "--"
-    // TODO: - end with "\n"
+    String_Buffer* commentbuf = String_Buffer_new_with_pool(h);
+
+    String_Buffer_append_string(commentbuf, "--", 2);
+
+    if (inlen > LONG_STRING_THRESHOLD
+            || strnstr((const char*)instr, inlen, "\n", 1)) {
+        char8_t* body;
+        size_t bodylen;
+        ELTN_quote_long_string(h, instr, inlen, &body, &bodylen);
+        String_Buffer_append_string(commentbuf, (const char *)body, bodylen);
+        ELTN_free(h, body);
+    } else {
+        String_Buffer_append_char(commentbuf, ' ');
+        String_Buffer_append_string(commentbuf, (const char *)instr, inlen);
+        String_Buffer_append_char(commentbuf, '\n');
+    }
+    String_Buffer_to_string(commentbuf, (char **)outstrptr, outlenptr);
+    String_Buffer_free(commentbuf);
 }
 
 
@@ -366,7 +457,7 @@ void ELTN_trim_comment(ELTN_Pool* h, const char8_t* instr, const size_t inlen,
     size_t quote_length;
     bool notaquote;
 
-    // TODO: merge common code with quote_long_string(...), below
+    // TODO: merge common code with unquote_long_string(...), above
 
     //assert instr[0:1] == "--"
     if (instr[2] != '[') {

@@ -65,24 +65,73 @@ void emitter_def_table() {
     ELTN_Emitter* emitter = ELTN_Emitter_new();
     char* result = NULL;
     size_t reslen = 0;
+    bool ok = true;
 
     const char* expected = "test = 1;\nanother = 2;\nthird = 3;\n";
     const int explen = strlen(expected);
 
-    // ELTN_Emitter_set_pretty_print(emitter, false);
-
-    lok(ELTN_Emitter_def_name(emitter, "test"));
-    lok(ELTN_Emitter_value_number(emitter, 1.0));
-    lok(ELTN_Emitter_def_name(emitter, "another"));
-    lok(ELTN_Emitter_value_number(emitter, 2.0));
-    lok(ELTN_Emitter_def_name(emitter, "third"));
-    lok(ELTN_Emitter_value_number(emitter, 3.0));
+    ok = (ELTN_Emitter_def_name(emitter, "test"));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 1.0));
+    lok(ok);
+    ok = (ELTN_Emitter_def_name(emitter, "another"));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 2.0));
+    lok(ok);
+    ok = (ELTN_Emitter_def_name(emitter, "third"));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 3.0));
+    lok(ok);
 
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
 
     ELTN_Emitter_write_string(emitter, &result, &reslen);
 
-    lok(result != NULL);
+    ok = (result != NULL);
+    if (result != NULL) {
+        lsequal(expected, result);
+        lequal(explen, (int)reslen);
+        debug_string(result, reslen);
+        free(result);
+    }
+
+    ELTN_Emitter_free(emitter);
+}
+
+void emitter_table() {
+    ELTN_Emitter* emitter = ELTN_Emitter_new();
+    char* result = NULL;
+    size_t reslen = 0;
+    bool ok = true;
+
+    const char* expected =
+        "table = {\n    test = 1,\n    another = 2,\n    third = 3,\n}\n";
+    const int explen = strlen(expected);
+
+    ok = (ELTN_Emitter_def_name(emitter, "table"));
+    lok(ok);
+    ok = (ELTN_Emitter_table_start(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_key_string(emitter, "test", 4));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 1.0));
+    lok(ok);
+    ok = (ELTN_Emitter_key_string(emitter, "another", 7));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 2.0));
+    lok(ok);
+    ok = (ELTN_Emitter_key_string(emitter, "third", 5));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 3.0));
+    lok(ok);
+    ok = (ELTN_Emitter_table_end(emitter));
+    lok(ok);
+
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+
+    ELTN_Emitter_write_string(emitter, &result, &reslen);
+
+    ok = (result != NULL);
     if (result != NULL) {
         lsequal(expected, result);
         lequal(explen, (int)reslen);
@@ -96,6 +145,7 @@ void emitter_def_table() {
 int main(void) {
     lrun("test_emitter_smoke", emitter_smoke);
     lrun("test_emitter_def_table", emitter_def_table);
+    lrun("test_emitter_table", emitter_table);
     lresults();
     return lfails != 0;
 }
