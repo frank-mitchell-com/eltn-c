@@ -43,6 +43,7 @@ struct String_Buffer {
 
 String_Buffer* String_Buffer_new_with_pool(ELTN_Pool* pool) {
     String_Buffer* result = ELTN_alloc(pool, sizeof(String_Buffer));
+
     result->pool = pool;
     result->bytes = NULL;
     result->size = 0;
@@ -62,8 +63,8 @@ size_t String_Buffer_length(String_Buffer* self) {
 static bool make_room(String_Buffer* self, size_t incr) {
     if (self->bytes == NULL || self->used + incr >= self->size) {
         size_t newsize = self->size + MAX(incr, INIT_BUFFER_SIZE);
-        char* result =
-            (char *)ELTN_realloc(self->pool, self->bytes, newsize);
+        char* result = (char *)ELTN_realloc(self->pool, self->bytes, newsize);
+
         if (result == NULL) {
             self->memory_error = true;
             return false;
@@ -87,7 +88,7 @@ void String_Buffer_append_string(String_Buffer* self, const char* text,
     if (!make_room(self, size)) {
         return;
     }
-    memcpy(self->bytes + self->used, text, size); 
+    memcpy(self->bytes + self->used, text, size);
     self->used += size;
 }
 

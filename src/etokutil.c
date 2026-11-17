@@ -64,11 +64,11 @@ static int strptrcmp(const void* a, const void* b) {
 
 bool ELTN_is_keyword(const char* word) {
     void* result;
+
     if (word == NULL) {
         return false;
     }
-    result =
-        bsearch(&word, KEYWORDS, KEYWORDS_SIZE, sizeof(char *), strptrcmp);
+    result = bsearch(&word, KEYWORDS, KEYWORDS_SIZE, sizeof(char *), strptrcmp);
 
     return result != NULL;
 }
@@ -101,6 +101,7 @@ bool ELTN_is_name(const char* word) {
 static const char* strnstr(const char* instr, const size_t inlen,
                            const char* searchstr, const size_t searchlen) {
     const char* result = NULL;
+
     for (size_t i = 0; i < inlen && result == NULL; i++) {
         if (strncmp(instr + i, searchstr, searchlen) == 0) {
             result = instr + i;
@@ -110,9 +111,9 @@ static const char* strnstr(const char* instr, const size_t inlen,
     return result;
 }
 
-static void ELTN_quote_long_string(ELTN_Pool * h,
-                       const char8_t* instr, const size_t inlen,
-                       char8_t** outstrptr, size_t* outlenptr) {
+static void ELTN_quote_long_string(ELTN_Pool* h,
+                                   const char8_t* instr, const size_t inlen,
+                                   char8_t** outstrptr, size_t* outlenptr) {
     int quote_level = -1;
     char* last_quote = NULL;
     size_t last_quote_len = 0;
@@ -131,7 +132,9 @@ static void ELTN_quote_long_string(ELTN_Pool * h,
         /*
          * Can't use strstr() here because instr may not be null-terminated
          */
-        if (strnstr((const char *)instr, inlen, (const char *)last_quote, last_quote_len) == NULL) {
+        if (strnstr
+            ((const char *)instr, inlen, (const char *)last_quote,
+             last_quote_len) == NULL) {
             quote_level = i;
             break;
         }
@@ -151,7 +154,7 @@ static void ELTN_quote_long_string(ELTN_Pool * h,
         String_Buffer_append_char(outbuffer, '=');
     }
     String_Buffer_append_char(outbuffer, '[');
-    String_Buffer_append_string(outbuffer, (const char*)instr, inlen);
+    String_Buffer_append_string(outbuffer, (const char *)instr, inlen);
     String_Buffer_append_string(outbuffer, last_quote, last_quote_len);
     ELTN_free(h, last_quote);
     String_Buffer_to_string(outbuffer, (char **)outstrptr, outlenptr);
@@ -167,7 +170,7 @@ static void append_hex_escape(String_Buffer* strbuf, char8_t c) {
     String_Buffer_append_string(strbuf, tmpbuf, written);
 }
 
-void ELTN_quote_string(ELTN_Pool * h,
+void ELTN_quote_string(ELTN_Pool* h,
                        const char8_t* instr, const size_t inlen,
                        char8_t** outstrptr, size_t* outlenptr) {
     if (inlen > LONG_STRING_THRESHOLD) {
@@ -179,7 +182,7 @@ void ELTN_quote_string(ELTN_Pool * h,
         for (size_t i = 0; i < inlen; i++) {
             char8_t c = instr[i];
 
-            switch(c) {
+            switch (c) {
             case '\0':
                 String_Buffer_append_string(strbuf, "\\0", 2);
                 break;
@@ -424,7 +427,7 @@ void ELTN_unquote_long_string(ELTN_Pool* h,
 }
 
 
-void ELTN_format_comment(ELTN_Pool * h,
+void ELTN_format_comment(ELTN_Pool* h,
                          const char8_t* instr, const size_t inlen,
                          char8_t** outstrptr, size_t* outlenptr) {
     String_Buffer* commentbuf = String_Buffer_new_with_pool(h);
@@ -432,9 +435,10 @@ void ELTN_format_comment(ELTN_Pool * h,
     String_Buffer_append_string(commentbuf, "--", 2);
 
     if (inlen > LONG_STRING_THRESHOLD
-            || strnstr((const char*)instr, inlen, "\n", 1)) {
+        || strnstr((const char *)instr, inlen, "\n", 1)) {
         char8_t* body;
         size_t bodylen;
+
         ELTN_quote_long_string(h, instr, inlen, &body, &bodylen);
         String_Buffer_append_string(commentbuf, (const char *)body, bodylen);
         ELTN_free(h, body);

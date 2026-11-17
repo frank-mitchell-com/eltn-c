@@ -30,20 +30,22 @@
 
 typedef struct String_Buffer String_Buffer;
 
-String_Buffer* String_Buffer_new_with_pool(ELTN_Pool* pool);
+String_Buffer* String_Buffer_new_with_pool(ELTN_Pool * pool);
 
-bool String_Buffer_memory_error(String_Buffer* self);
+bool String_Buffer_memory_error(String_Buffer * self);
 
-size_t String_Buffer_length(String_Buffer* self);
+size_t String_Buffer_length(String_Buffer * self);
 
-void String_Buffer_append_char(String_Buffer* self, char c);
+void String_Buffer_append_char(String_Buffer * self, char c);
 
-void String_Buffer_append_string(String_Buffer* self, const char* s, size_t len);
+void String_Buffer_append_string(String_Buffer * self, const char* s,
+                                 size_t len);
 
-void String_Buffer_to_string(String_Buffer* self, char** outstr, size_t* outlen);
+void String_Buffer_to_string(String_Buffer * self, char** outstr,
+                             size_t* outlen);
 
-void String_Buffer_clear(String_Buffer* self);
+void String_Buffer_clear(String_Buffer * self);
 
-void String_Buffer_free(String_Buffer* self);
+void String_Buffer_free(String_Buffer * self);
 
 #endif /* __ELTN_STRING_BUFFER */
