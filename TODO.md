@@ -82,10 +82,6 @@ Testing
   - `ELTN_Emitter_value_nil`
   - `ELTN_Emitter_comment`
 
-- Test queries
-  - `ELTN_Emitter_current_depth`
-  - `ELTN_Emitter_current_path`
-
 - Variants of basic data types:
   - right quotes on string data
   - escape codes in quoted strings
