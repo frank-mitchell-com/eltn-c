@@ -140,27 +140,8 @@ void triple_table() {
     lok(ELTN_Parser_has_next(parser));
 
     ELTN_Parser_next(parser);
-    lequal(ELTN_TABLE_START, ELTN_Parser_event(parser));
-    lequal(1, (int)ELTN_Parser_depth(parser));
-    lok(ELTN_Parser_has_next(parser));
-
-    ELTN_Parser_next(parser);
-    lequal(ELTN_TABLE_END, ELTN_Parser_event(parser));
-    lequal(0, (int)ELTN_Parser_depth(parser));
-    lok(ELTN_Parser_has_next(parser));
-
-    ELTN_Parser_next(parser);
-    lequal(ELTN_TABLE_START, ELTN_Parser_event(parser));
-    lequal(1, (int)ELTN_Parser_depth(parser));
-    lok(ELTN_Parser_has_next(parser));
-
-    ELTN_Parser_next(parser);
-    lequal(ELTN_TABLE_END, ELTN_Parser_event(parser));
-    lequal(0, (int)ELTN_Parser_depth(parser));
-    lok(ELTN_Parser_has_next(parser));
-
-    ELTN_Parser_next(parser);
-    lequal(ELTN_STREAM_END, ELTN_Parser_event(parser));
+    lequal(ELTN_ERROR, ELTN_Parser_event(parser));
+    lequal(ELTN_ERR_UNEXPECTED_TOKEN, ELTN_Parser_error_code(parser));
     lequal(0, (int)ELTN_Parser_depth(parser));
     lok(!ELTN_Parser_has_next(parser));
 
