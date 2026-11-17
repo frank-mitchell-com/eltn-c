@@ -540,13 +540,16 @@ ELTN_API ELTN_Emitter* ELTN_Emitter_new_with_pool(ELTN_Pool * pool);
  * The following events should define value or table.
  *
  * @param emitter the emitter
- * @param n the null-terminated ASCII identifier in the definition table.
+ * @param n the alphanumeric ASCII identifier in the definition table,
+ *          which may *not* include nulls.
  *          See the specification for characters allowed in a definition name.
+ * @param length the length of @p n in bytes
  *
  * @return `true` if no error, `false` if an error occurred.
  *          See ELTN_Emitter_error_code() for the error.
  */
-ELTN_API bool ELTN_Emitter_def_name(ELTN_Emitter * emitter, const char* n);
+ELTN_API bool ELTN_Emitter_def_name(ELTN_Emitter * emitter, const char* n,
+                                    size_t length);
 
 /**
  * Add a `KEY_STRING` event to the ELTN document.

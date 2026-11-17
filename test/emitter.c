@@ -82,19 +82,19 @@ void emitter_def_table() {
     const char* expected = "test = 1;\nanother = 2;\nthird = 3;\n";
     const int explen = strlen(expected);
 
-    ok = (ELTN_Emitter_def_name(emitter, "test"));
+    ok = (ELTN_Emitter_def_name(emitter, "test", 4));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
     ok = (ELTN_Emitter_value_number(emitter, 1.0));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
-    ok = (ELTN_Emitter_def_name(emitter, "another"));
+    ok = (ELTN_Emitter_def_name(emitter, "another", 7));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
     ok = (ELTN_Emitter_value_number(emitter, 2.0));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
-    ok = (ELTN_Emitter_def_name(emitter, "third"));
+    ok = (ELTN_Emitter_def_name(emitter, "third", 5));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
     ok = (ELTN_Emitter_value_number(emitter, 3.0));
@@ -109,7 +109,6 @@ void emitter_def_table() {
     if (result != NULL) {
         lsequal(expected, result);
         lequal(explen, (int)reslen);
-        debug_string(result, reslen);
         free(result);
     }
 
@@ -128,7 +127,7 @@ void emitter_table() {
     size_t reslen = 0;
     bool ok = true;
 
-    ok = (ELTN_Emitter_def_name(emitter, "table"));
+    ok = (ELTN_Emitter_def_name(emitter, "table", 5));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
     ok = (ELTN_Emitter_table_start(emitter));
@@ -164,7 +163,6 @@ void emitter_table() {
     if (result != NULL) {
         lsequal(expected, result);
         lequal(explen, (int)reslen);
-        debug_string(result, reslen);
         free(result);
     }
 
@@ -189,69 +187,82 @@ void emitter_current_path() {
         "}\n";
     const int explen = strlen(expected);
 
-    ok = (ELTN_Emitter_def_name(emitter, "table"));
+    ok = (ELTN_Emitter_def_name(emitter, "table", 5));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    lequal(0, (int)ELTN_Emitter_current_depth(emitter));
     assert_current_path(emitter, "table");
 
     ok = (ELTN_Emitter_table_start(emitter));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    lequal(1, (int)ELTN_Emitter_current_depth(emitter));
     assert_current_path(emitter, "table");
 
     ok = (ELTN_Emitter_key_string(emitter, "count", 5));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    lequal(1, (int)ELTN_Emitter_current_depth(emitter));
     assert_current_path(emitter, "table.count");
 
     ok = (ELTN_Emitter_value_number(emitter, 3.0));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    lequal(1, (int)ELTN_Emitter_current_depth(emitter));
     assert_current_path(emitter, "table.count");
 
     ok = (ELTN_Emitter_key_string(emitter, "list", 4));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    lequal(1, (int)ELTN_Emitter_current_depth(emitter));
     assert_current_path(emitter, "table.list");
 
     ok = (ELTN_Emitter_table_start(emitter));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    lequal(2, (int)ELTN_Emitter_current_depth(emitter));
     assert_current_path(emitter, "table.list");
 
     ok = (ELTN_Emitter_value_number(emitter, 1.0));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    lequal(2, (int)ELTN_Emitter_current_depth(emitter));
     assert_current_path(emitter, "table.list[1]");
 
     ok = (ELTN_Emitter_value_number(emitter, 2.0));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    lequal(2, (int)ELTN_Emitter_current_depth(emitter));
     assert_current_path(emitter, "table.list[2]");
 
     ok = (ELTN_Emitter_value_number(emitter, 3.0));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    lequal(2, (int)ELTN_Emitter_current_depth(emitter));
     assert_current_path(emitter, "table.list[3]");
 
     ok = (ELTN_Emitter_table_end(emitter));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    lequal(1, (int)ELTN_Emitter_current_depth(emitter));
     assert_current_path(emitter, "table.list");
 
     ok = (ELTN_Emitter_key_string(emitter, "total", 5));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    lequal(1, (int)ELTN_Emitter_current_depth(emitter));
     assert_current_path(emitter, "table.total");
 
     ok = (ELTN_Emitter_value_number(emitter, 6.0));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    lequal(1, (int)ELTN_Emitter_current_depth(emitter));
     assert_current_path(emitter, "table.total");
 
     ok = (ELTN_Emitter_table_end(emitter));
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
     lok(ok);
+    lequal(0, (int)ELTN_Emitter_current_depth(emitter));
     assert_current_path(emitter, "table");
 
     lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
@@ -262,30 +273,179 @@ void emitter_current_path() {
     if (result != NULL) {
         lsequal(expected, result);
         lequal(explen, (int)reslen);
-        debug_string(result, reslen);
         free(result);
     }
 
     ELTN_Emitter_free(emitter);
 }
 
-/*
- * TODO: test all key types: string, number, integer
- * TODO: test all value types: string, number, integer, true, false, nil
- * TODO: test values without keys
- * TODO: test short comments
- * TODO: test long comments
- * TODO: test error path
- * TODO: on error, other functions disabled (like the parser)
- * TODO: test without pretty printing
- * TODO: trst different indent
- */
+void emitter_all_key_types() {
+    ELTN_Emitter* emitter = ELTN_Emitter_new();
+    char* result = NULL;
+    size_t reslen = 0;
+    bool ok = true;
+
+    const char* expected =
+        "{\n"
+        "    string = 1,\n"
+        "    [ \"quoted string\" ] = 2,\n"
+        "    [11] = 3,\n"
+        "    [5.5] = 4,\n"
+        "}\n";
+    const int explen = strlen(expected);
+
+    ok = (ELTN_Emitter_table_start(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    ok = (ELTN_Emitter_key_string(emitter, "string", 6));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    ok = (ELTN_Emitter_value_number(emitter, 1.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    ok = (ELTN_Emitter_key_string(emitter, "quoted string", 13));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    ok = (ELTN_Emitter_value_number(emitter, 2.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    ok = (ELTN_Emitter_key_integer(emitter, 11));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    ok = (ELTN_Emitter_value_number(emitter, 3.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    ok = (ELTN_Emitter_key_number(emitter, 5.5));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    ok = (ELTN_Emitter_value_number(emitter, 4.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    ok = (ELTN_Emitter_table_end(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    ELTN_Emitter_write_string(emitter, &result, &reslen);
+
+    ok = (result != NULL);
+    if (result != NULL) {
+        lsequal(expected, result);
+        lequal(explen, (int)reslen);
+        free(result);
+    }
+
+    ELTN_Emitter_free(emitter);
+}
+
+void emitter_all_value_types() {
+    ELTN_Emitter* emitter = ELTN_Emitter_new();
+    char* result = NULL;
+    size_t reslen = 0;
+    bool ok = true;
+
+    const char* expected =
+        "{\n"
+        "    \"string\",\n"
+        "    5.5,\n"
+        "    3,\n"
+        "    true,\n"
+        "    false,\n"
+        "    nil,\n"
+        "}\n";
+    const int explen = strlen(expected);
+
+    ok = (ELTN_Emitter_table_start(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "");
+
+    ok = (ELTN_Emitter_value_string(emitter, "string", 6));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "[1]");
+
+    ok = (ELTN_Emitter_value_number(emitter, 5.5));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "[2]");
+
+    ok = (ELTN_Emitter_value_integer(emitter, 3.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "[3]");
+
+    ok = (ELTN_Emitter_value_boolean(emitter, true));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "[4]");
+
+    ok = (ELTN_Emitter_value_boolean(emitter, false));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "[5]");
+
+    ok = (ELTN_Emitter_value_nil(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "[6]");
+
+    ok = (ELTN_Emitter_table_end(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    assert_current_path(emitter, "");
+
+    ELTN_Emitter_write_string(emitter, &result, &reslen);
+
+    ok = (result != NULL);
+    if (result != NULL) {
+        lsequal(expected, result);
+        lequal(explen, (int)reslen);
+        free(result);
+    }
+
+    ELTN_Emitter_free(emitter);
+}
+
+void emitter_comments() {
+    /*
+     * TODO: test short comments
+     * TODO: test long comments
+     * TODO: test different indent
+     */
+}
+
+void emitter_no_pretty() {
+    /*
+     * TODO: test without pretty printing
+     */
+}
+
+void emitter_error() {
+    /*
+     * TODO: test error path
+     * TODO: on error, other functions disabled (like the parser)
+     */
+}
 
 int main(void) {
     lrun("test_emitter_smoke", emitter_smoke);
     lrun("test_emitter_def_table", emitter_def_table);
     lrun("test_emitter_table", emitter_table);
     lrun("test_emitter_current_path", emitter_current_path);
+    lrun("test_emitter_all_key_types", emitter_all_key_types);
+    lrun("test_emitter_all_value_types", emitter_all_value_types);
+    lrun("test_emitter_comments", emitter_comments);
+    lrun("test_emitter_no_pretty", emitter_no_pretty);
+    lrun("test_emitter_error", emitter_error);
     lresults();
     return lfails != 0;
 }

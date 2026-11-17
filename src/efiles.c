@@ -36,7 +36,7 @@
 
 static int File_Reader(void* state, char** strptr, size_t* sizeptr) {
     FILE* fp;
-    unsigned char* rbuf;
+    char* rbuf;
     size_t nread;
 
     if (state == NULL || strptr == NULL || sizeptr == NULL) {
@@ -52,7 +52,7 @@ static int File_Reader(void* state, char** strptr, size_t* sizeptr) {
         return 0;
     }
 
-    rbuf = (unsigned char *)malloc(BUFSIZE * sizeof(char));
+    rbuf = (char *)malloc(BUFSIZE * sizeof(char));
 
     if (rbuf == NULL) {
         return errno;
@@ -85,10 +85,21 @@ ELTN_API ssize_t ELTN_Parser_read_file(ELTN_Parser* self, FILE* fp) {
 
 static int File_Writer(void* state, const char* text, size_t size,
                        size_t* nwriteptr) {
-    /*
-       TODO: implement 
-     */
-    return -1;
+    FILE* fp;
+
+    if (state == NULL || text == NULL || nwriteptr == NULL) {
+        return -1;
+    }
+
+    fp = (FILE *) state;
+
+    if (ferror(fp)) {
+        clearerr(fp);
+    }
+
+    (*nwriteptr) = fwrite(text, sizeof(char), size, fp);
+
+    return errno;
 }
 
 ELTN_API ssize_t ELTN_Emitter_write_file(ELTN_Emitter* self, FILE* fp) {

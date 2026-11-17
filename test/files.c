@@ -37,20 +37,27 @@ void write_data(FILE* file, const char* data, size_t datalen) {
     lequal(0, feof(file));
 }
 
+void read_data(FILE* file, char* buffer, size_t bufsize, size_t* readlenptr) {
+    rewind(file);
+    lequal(0, ferror(file));
+    lequal(0, feof(file));
+
+    memset(buffer, 0, bufsize);
+    (*readlenptr) = fread(buffer, sizeof(char), bufsize - 1, file);
+    lequal(0, ferror(file));
+}
 
 void file_smoke(void) {
     FILE* file = tmpfile();
     const char* data = "this is a test.\nnothing to see here, move along.\n";
     size_t datalen = strlen(data);
+    size_t readlen = 0;
     char buffer[1024];
-    size_t readlen;
 
     write_data(file, data, datalen);
 
-    memset(buffer, 0, sizeof(buffer));
+    read_data(file, buffer, sizeof(buffer), &readlen);
 
-    readlen = fread(buffer, sizeof(char), sizeof(buffer), file);
-    lequal(0, ferror(file));
     lequal((int)datalen, (int)readlen);
     lsequal(data, buffer);
 
@@ -106,9 +113,35 @@ void file_read_eltn(void) {
     fclose(file);
 }
 
+void file_write_eltn() {
+    FILE* file = tmpfile();
+    const char* expected = "{\n    hello = \"world\",\n}\n";
+    size_t expectlen = strlen(expected);
+    size_t readlen;
+    char buffer[1024];
+
+    ELTN_Emitter* emitter = ELTN_Emitter_new();
+
+    ELTN_Emitter_table_start(emitter);
+    ELTN_Emitter_key_string(emitter, "hello", 5);
+    ELTN_Emitter_value_string(emitter, "world", 5);
+    ELTN_Emitter_table_end(emitter);
+
+    ELTN_Emitter_write_file(emitter, file);
+
+    read_data(file, buffer, sizeof(buffer), &readlen);
+
+    lequal((int)expectlen, (int)readlen);
+    lsequal(expected, buffer);
+
+    ELTN_Emitter_free(emitter);
+    fclose(file);
+}
+
 int main(void) {
     lrun("test_file_smoke", file_smoke);
     lrun("test_file_read_eltn", file_read_eltn);
+    lrun("test_file_write_eltn", file_write_eltn);
     lresults();
     return lfails != 0;
 }

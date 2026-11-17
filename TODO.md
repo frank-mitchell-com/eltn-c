@@ -24,7 +24,6 @@ Coding
 
 - Implement Emitter
   - error detection
-  - write to file
 
 ### Other Concerns
 
@@ -41,11 +40,10 @@ Testing
 - Test `ELTN_Buffer`
   - reader returns an error condition
   - forcing a read without a reader function
-  - attempting to write to a closed Source
-  - forcing a read of an empty Source
+  - attempting to write to a closed Buffer
+  - forcing a read of an empty Buffer
   - allocator failure?
   - test for byte order mark with swapped bytes
-  - incremental reading of a string (or other in-memory construct)
 
 - Test `ELTN_Lexer`
   - long comments (more)
@@ -64,26 +62,18 @@ Testing
   - unquoted long comments if flag is set
 
 - Test `ELTN_Parser_read_file`
-  - normal usage
   - error in file read
 
 ### Emitter
 
 - Test each event method
   - `ELTN_Emitter_key_string`
-     - non-name keys
      - long-string keys
-  - `ELTN_Emitter_key_number`
-  - `ELTN_Emitter_key_integer`
   - `ELTN_Emitter_value_string`
      - long string values
-  - `ELTN_Emitter_value_integer`
-  - `ELTN_Emitter_value_boolean`
-  - `ELTN_Emitter_value_nil`
   - `ELTN_Emitter_comment`
 
 - Variants of basic data types:
-  - right quotes on string data
   - escape codes in quoted strings
   - long strings become Long Strings
   - DEF_NAMEs screened for non-identifier chars
@@ -96,7 +86,6 @@ Testing
 - Test `ELTN_Emitter_error_path`
 
 - Test `ELTN_Emitter_write_file`
-  - normal usage
   - error in file write
 
 - Test constraints at top level:

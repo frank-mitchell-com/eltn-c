@@ -32,6 +32,8 @@ typedef struct String_Buffer String_Buffer;
 
 String_Buffer* String_Buffer_new_with_pool(ELTN_Pool* pool);
 
+bool String_Buffer_memory_error(String_Buffer* self);
+
 size_t String_Buffer_length(String_Buffer* self);
 
 void String_Buffer_append_char(String_Buffer* self, char c);

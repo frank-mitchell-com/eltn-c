@@ -216,6 +216,8 @@ static void pop_stack(ELTN_Emitter* self) {
     self->top = oldframe->next;
     if (self->top != NULL) {
         self->top->prev = NULL;
+    } else {
+        self->bottom = NULL;
     }
 
     // free space of oldframe
@@ -241,32 +243,6 @@ static void set_last_key(ELTN_Emitter* self, const char* key, size_t keylen) {
     }
 }
 
-static bool handle_possible_sequence(ELTN_Emitter* self) {
-    char buffer[INIT_BUFFER_SIZE];
-
-    if (self->last != NULL && self->last->prev != NULL) {
-        if (!is_key(self->last->event) && self->top != NULL) {
-            /*
-             * If not preceded by a key, the node for a VALUE is
-             * part of an implicit sequence in the table.
-             * Treat this key *almost* like an explicit key.
-             */
-            int newkey = ++(self->top->last_implicit_key);
-            size_t len;
-
-            memset(buffer, 0, sizeof(buffer));
-            len = snprintf(buffer, sizeof(buffer), "%d", newkey);
-            if (Key_Set_has_key(self->top->keys, KEY_SET_NUMBER, (const char8_t*) buffer, len)) {
-                return false;
-            }
-            Key_Set_add_key(self->top->keys, KEY_SET_NUMBER, (const char8_t *)buffer, len);
-            len = snprintf(buffer, sizeof(buffer), "[%d]", newkey);
-            set_last_key(self, buffer, len);
-        }
-    }
-    return true;
-}
-
 static void raise_error(ELTN_Emitter* self, ELTN_Error errcode) {
     // TODO: Should this be an error list?
     if (self->error_code == ELTN_OK) {
@@ -275,23 +251,62 @@ static void raise_error(ELTN_Emitter* self, ELTN_Error errcode) {
     }
 }
 
+static bool handle_possible_sequence(ELTN_Emitter* self) {
+    char buffer[INIT_BUFFER_SIZE];
+
+    if (self->last != NULL && !is_key(self->last->event) && self->top != NULL) {
+        /*
+         * If not preceded by a key, the node for a VALUE is
+         * part of an implicit sequence in the table.
+         * Treat this key *almost* like an explicit key.
+         */
+        int newkey = ++(self->top->last_implicit_key);
+        size_t len;
+
+        memset(buffer, 0, sizeof(buffer));
+        len = snprintf(buffer, sizeof(buffer), "%d", newkey);
+        if (Key_Set_has_key(self->top->keys, KEY_SET_NUMBER, (const char8_t*) buffer, len)) {
+            raise_error(self, ELTN_ERR_DUPLICATE_KEY);
+            return false;
+        }
+        Key_Set_add_key(self->top->keys, KEY_SET_NUMBER, (const char8_t *)buffer, len);
+        len = snprintf(buffer, sizeof(buffer), "[%d]", newkey);
+        set_last_key(self, buffer, len);
+
+    }
+    return true;
+}
+
 static bool last_node_was_key(ELTN_Emitter* self) {
      return (self->last != NULL && is_key(self->last->event));
 }
 
-ELTN_API bool ELTN_Emitter_def_name(ELTN_Emitter* self, const char* n) {
-    size_t length = strlen(n); // TODO: Unsafe!
+static bool handle_irregular_keys(ELTN_Emitter* self, const char* s,
+                                  size_t length) {
+    // check that the preceding Node is not another key (unqualified error)
+    if (last_node_was_key(self)) {
+        raise_error(self, ELTN_ERR_UNEXPECTED_TOKEN);
+        return false;
+    }
+
+    // check that name isn't a duplicate key (unqualified error)
+    if (Key_Set_has_key(self->top->keys, KEY_SET_STRING,
+                        (const char8_t*)s, length)) {
+        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
+        return false;
+    }
+    
+    Key_Set_add_key(self->top->keys, KEY_SET_STRING, (const char8_t*)s, length);
+    return true;
+}
+
+ELTN_API bool ELTN_Emitter_def_name(ELTN_Emitter* self, const char* n,
+                                    size_t length) {
     char buffer[length + 4];
 
     if (self->top == NULL) {
         push_stack(self);
         self->top->is_def_table = true;
-    }
-
-    // check that the preceding Node is not another key (unqualified error)
-    if (last_node_was_key(self)) {
-        raise_error(self, ELTN_ERR_UNEXPECTED_TOKEN);
-        return false;
     }
 
     // check that name is an identifier (unqualified error)
@@ -306,10 +321,8 @@ ELTN_API bool ELTN_Emitter_def_name(ELTN_Emitter* self, const char* n) {
         return false;
     }
 
-    // check that name isn't a duplicate key (unqualified error)
-    if (Key_Set_has_key(self->top->keys, KEY_SET_STRING,
-                        (const char8_t*)n, length)) {
-        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
+    // handle redundant and duplicate keys
+    if (!handle_irregular_keys(self, n, length)) {
         return false;
     }
 
@@ -328,16 +341,8 @@ ELTN_API bool ELTN_Emitter_def_name(ELTN_Emitter* self, const char* n) {
 
 ELTN_API bool ELTN_Emitter_key_string(ELTN_Emitter* self, const char* s,
                                       size_t len) {
-    // check that the preceding Node is not another key (unqualified error)
-    if (last_node_was_key(self)) {
-        raise_error(self, ELTN_ERR_UNEXPECTED_TOKEN);
-        return false;
-    }
-
-    // check that name isn't a duplicate key (unqualified error)
-    if (Key_Set_has_key(self->top->keys, KEY_SET_STRING,
-                        (const char8_t*)s, len)) {
-        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
+    // handle redundant and duplicate keys
+    if (!handle_irregular_keys(self, s, len)) {
         return false;
     }
 
@@ -349,8 +354,6 @@ ELTN_API bool ELTN_Emitter_key_string(ELTN_Emitter* self, const char* s,
         snprintf(buffer, sizeof(buffer), "%*s = ", (int)len, s);
         add_node(self, ELTN_KEY_STRING, buffer, strlen(buffer));
         set_last_key(self, s, len);
-        Key_Set_add_key(self->top->keys, KEY_SET_STRING,
-                        (const char8_t*)s, len);
     } else {
         String_Buffer* outbuf = String_Buffer_new_with_pool(self->pool);
         char8_t* quoted_string;
@@ -365,10 +368,12 @@ ELTN_API bool ELTN_Emitter_key_string(ELTN_Emitter* self, const char* s,
         String_Buffer_append_string(outbuf, " ] = ", 5);
         String_Buffer_to_string(outbuf, (char **)&outstr, &outlen);
 
+        if (String_Buffer_memory_error(outbuf)) {
+            raise_error(self, ELTN_ERR_OUT_OF_MEMORY);
+            return false;
+        }
         add_node(self, ELTN_KEY_STRING, outstr, outlen);
         set_last_key(self, outstr, outlen - 3);
-        Key_Set_add_key(self->top->keys, KEY_SET_STRING,
-                        (const char8_t*)s, len);
 
         ELTN_free(self->pool, quoted_string);
         ELTN_free(self->pool, outstr);
@@ -381,30 +386,19 @@ ELTN_API bool ELTN_Emitter_key_number(ELTN_Emitter* self, double n) {
     char buffer[INIT_BUFFER_SIZE];
     size_t bufferlen;
 
-    // check that the preceding Node is not another key (unqualified error)
-    if (last_node_was_key(self)) {
-        raise_error(self, ELTN_ERR_UNEXPECTED_TOKEN);
-        return false;
-    }
-
-    // check that name isn't a duplicate key (unqualified error)
     memset(buffer, 0, sizeof(buffer));
-    snprintf(buffer, sizeof(buffer)-1, "%g", n);
-    bufferlen = strlen(buffer);
+    bufferlen = snprintf(buffer, sizeof(buffer)-1, "%g", n);
 
-    if (Key_Set_has_key(self->top->keys, KEY_SET_NUMBER,
-                        (const char8_t*)buffer, bufferlen)) {
-        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
+    // handle redundant and duplicate keys
+    if (!handle_irregular_keys(self, buffer, bufferlen)) {
         return false;
     }
-    Key_Set_add_key(self->top->keys, KEY_SET_NUMBER,
-                    (const char8_t*)buffer, bufferlen);
 
     // format the number with "[" ... "]" for a non-name key 
     memset(buffer, 0, sizeof(buffer));
     snprintf(buffer, sizeof(buffer)-1, "[%g] = ", n);
     bufferlen = strlen(buffer);
-    add_node(self, ELTN_VALUE_NUMBER, buffer, bufferlen);
+    add_node(self, ELTN_KEY_NUMBER, buffer, bufferlen);
     set_last_key(self, buffer, bufferlen - 3);
     return true;
 }
@@ -413,54 +407,44 @@ ELTN_API bool ELTN_Emitter_key_integer(ELTN_Emitter* self, long int i) {
     char buffer[INIT_BUFFER_SIZE];
     size_t bufferlen;
 
-    // check that the preceding Node is not another key (unqualified error)
-    if (last_node_was_key(self)) {
-        raise_error(self, ELTN_ERR_UNEXPECTED_TOKEN);
-        return false;
-    }
-
-    // check that name isn't a duplicate key (unqualified error)
     memset(buffer, 0, sizeof(buffer));
-    snprintf(buffer, sizeof(buffer)-1, "%ld", i);
-    bufferlen = strlen(buffer);
+    bufferlen = snprintf(buffer, sizeof(buffer)-1, "%ld", i);
 
-    if (Key_Set_has_key(self->top->keys, KEY_SET_NUMBER,
-                        (const char8_t*)buffer, bufferlen)) {
-        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
+    // handle redundant and duplicate keys
+    if (!handle_irregular_keys(self, buffer, bufferlen)) {
         return false;
     }
-    Key_Set_add_key(self->top->keys, KEY_SET_NUMBER,
-                    (const char8_t*)buffer, bufferlen);
 
     // format the number with "[" ... "]" for a non-name key 
     memset(buffer, 0, sizeof(buffer));
     snprintf(buffer, sizeof(buffer)-1, "[%ld] = ", i);
     bufferlen = strlen(buffer);
-    add_node(self, ELTN_VALUE_NUMBER, buffer, bufferlen);
+    add_node(self, ELTN_KEY_INTEGER, buffer, bufferlen);
     set_last_key(self, buffer, bufferlen - 3);
     return true;
 }
 
 ELTN_API bool ELTN_Emitter_value_string(ELTN_Emitter* self, const char* s,
                                         size_t len) {
-    char buffer[INIT_BUFFER_SIZE];
+    String_Buffer* buffer;
     char sep = (self->depth == 0) ? ';' : ',';
     char* quoted_string;
-    size_t quoted_length;
+    char* full_string;
+    size_t quoted_length, full_length;
 
     if (!handle_possible_sequence(self)) {
-        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
         return false;
     }
 
     ELTN_quote_string(self->pool, (const char8_t*)s, len, (char8_t**) &quoted_string, &quoted_length);
 
-    add_node(self, ELTN_KEY_STRING, quoted_string, quoted_length);
-
-    memset(buffer, 0, sizeof(buffer));
-    snprintf(buffer, sizeof(buffer)-1, "%*s%c", (int)quoted_length, quoted_string, sep);
-    add_node(self, ELTN_VALUE_STRING, buffer, strlen(buffer));
+    buffer = String_Buffer_new_with_pool(self->pool);
+    String_Buffer_append_string(buffer, quoted_string, quoted_length);
+    String_Buffer_append_char(buffer, sep);
+    String_Buffer_to_string(buffer, &full_string, &full_length);
+    add_node(self, ELTN_VALUE_STRING, full_string, full_length);
     ELTN_free(self->pool, quoted_string);
+    ELTN_free(self->pool, full_string);
     return true;
 }
 
@@ -469,7 +453,6 @@ ELTN_API bool ELTN_Emitter_value_number(ELTN_Emitter* self, double n) {
     char sep = (self->depth == 0) ? ';' : ',';
 
     if (!handle_possible_sequence(self)) {
-        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
         return false;
     }
 
@@ -484,7 +467,6 @@ ELTN_API bool ELTN_Emitter_value_integer(ELTN_Emitter* self, long int i) {
     char sep = (self->depth == 0) ? ';' : ',';
 
     if (!handle_possible_sequence(self)) {
-        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
         return false;
     }
 
@@ -499,7 +481,6 @@ ELTN_API bool ELTN_Emitter_value_boolean(ELTN_Emitter* self, bool b) {
     char sep = (self->depth == 0) ? ';' : ',';
 
     if (!handle_possible_sequence(self)) {
-        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
         return false;
     }
 
@@ -519,7 +500,6 @@ ELTN_API bool ELTN_Emitter_value_nil(ELTN_Emitter* self) {
     char sep = (self->depth == 0) ? ';' : ',';
 
     if (!handle_possible_sequence(self)) {
-        raise_error(self, ELTN_ERR_DUPLICATE_KEY);
         return false;
     }
 

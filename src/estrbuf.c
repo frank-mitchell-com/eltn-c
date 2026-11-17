@@ -28,7 +28,9 @@
 #include "estrbuf.h"
 #include "ealloc.h"
 
-#define INIT_BUFFER_SIZE   1024 
+#define INIT_BUFFER_SIZE   256
+
+#define MAX(a, b)   (((a) > (b)) ? (a) : (b))
 
 struct String_Buffer {
     intptr_t __reserved;
@@ -36,6 +38,7 @@ struct String_Buffer {
     char* bytes;
     size_t size;
     size_t used;
+    bool memory_error;
 };
 
 String_Buffer* String_Buffer_new_with_pool(ELTN_Pool* pool) {
@@ -44,7 +47,12 @@ String_Buffer* String_Buffer_new_with_pool(ELTN_Pool* pool) {
     result->bytes = NULL;
     result->size = 0;
     result->used = 0;
+    result->memory_error = false;
     return result;
+}
+
+bool String_Buffer_memory_error(String_Buffer* self) {
+    return self->memory_error;
 }
 
 size_t String_Buffer_length(String_Buffer* self) {
@@ -53,10 +61,11 @@ size_t String_Buffer_length(String_Buffer* self) {
 
 static bool make_room(String_Buffer* self, size_t incr) {
     if (self->bytes == NULL || self->used + incr >= self->size) {
-        size_t newsize = self->size + INIT_BUFFER_SIZE;
+        size_t newsize = self->size + MAX(incr, INIT_BUFFER_SIZE);
         char* result =
             (char *)ELTN_realloc(self->pool, self->bytes, newsize);
         if (result == NULL) {
+            self->memory_error = true;
             return false;
         }
         self->bytes = result;
@@ -67,7 +76,6 @@ static bool make_room(String_Buffer* self, size_t incr) {
 
 void String_Buffer_append_char(String_Buffer* self, char c) {
     if (!make_room(self, 1)) {
-        // TODO: signal error
         return;
     }
     self->bytes[self->used] = c;
@@ -77,7 +85,6 @@ void String_Buffer_append_char(String_Buffer* self, char c) {
 void String_Buffer_append_string(String_Buffer* self, const char* text,
                                  size_t size) {
     if (!make_room(self, size)) {
-        // TODO: signal error
         return;
     }
     memcpy(self->bytes + self->used, text, size); 
@@ -88,6 +95,7 @@ void String_Buffer_to_string(String_Buffer* self, char** outstr, size_t* outlen)
     String_Buffer_append_char(self, '\0');
     (*outstr) = self->bytes;
     (*outlen) = self->used - 1;
+    ELTN_realloc(self->pool, self->bytes, self->used);
     self->bytes = NULL;
     self->used = 0;
     self->size = 0;

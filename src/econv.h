@@ -68,18 +68,6 @@ bool ELTN_Conv_is_ascii(size_t sz, const char* buf);
 ELTN_Byte_Order ELTN_Conv_byte_order(size_t insz, const char8_t * inbuf,
                                      size_t* skipptr);
 
-/*
- * Convert 16 bit characters (UTF-16/UCS2) to 8-bit characters (UTF-8).
- */
-size_t ELTN_Conv_char16_to_8(size_t insz, const char16_t * inbuf, size_t outsz,
-                             char8_t * outbuf);
-
-/*
- * Convert 32-bit characters (UTF-32/UCS4) to 8-bit characters (UTF-8).
- */
-size_t ELTN_Conv_char32_to_8(size_t insz, const char32_t * inbuf, size_t outsz,
-                             char8_t * outbuf);
-
 /**
  * Given a byte ordering, convert multibyte text to single bytes of UTF-8.
  */
