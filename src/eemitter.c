@@ -256,10 +256,10 @@ static bool handle_possible_sequence(ELTN_Emitter* self) {
 
             memset(buffer, 0, sizeof(buffer));
             len = snprintf(buffer, sizeof(buffer), "%d", newkey);
-            if (Key_Set_has_key(self->top->keys, KEY_SET_NUMBER, buffer, len)) {
+            if (Key_Set_has_key(self->top->keys, KEY_SET_NUMBER, (const char8_t*) buffer, len)) {
                 return false;
             }
-            Key_Set_add_key(self->top->keys, KEY_SET_NUMBER, buffer, len);
+            Key_Set_add_key(self->top->keys, KEY_SET_NUMBER, (const char8_t *)buffer, len);
             len = snprintf(buffer, sizeof(buffer), "[%d]", newkey);
             set_last_key(self, buffer, len);
         }
@@ -271,7 +271,7 @@ static void raise_error(ELTN_Emitter* self, ELTN_Error errcode) {
     // TODO: Should this be an error list?
     if (self->error_code == ELTN_OK) {
         self->error_code = errcode;
-        // compute error_path from stack's current keys
+        // TODO: compute error_path from stack's current keys
     }
 }
 
@@ -402,7 +402,7 @@ ELTN_API bool ELTN_Emitter_key_number(ELTN_Emitter* self, double n) {
 
     // format the number with "[" ... "]" for a non-name key 
     memset(buffer, 0, sizeof(buffer));
-    snprintf(buffer, sizeof(buffer)-1, "[ %g ] = ", n);
+    snprintf(buffer, sizeof(buffer)-1, "[%g] = ", n);
     bufferlen = strlen(buffer);
     add_node(self, ELTN_VALUE_NUMBER, buffer, bufferlen);
     set_last_key(self, buffer, bufferlen - 3);
@@ -434,7 +434,7 @@ ELTN_API bool ELTN_Emitter_key_integer(ELTN_Emitter* self, long int i) {
 
     // format the number with "[" ... "]" for a non-name key 
     memset(buffer, 0, sizeof(buffer));
-    snprintf(buffer, sizeof(buffer)-1, "[ %ld ] = ", i);
+    snprintf(buffer, sizeof(buffer)-1, "[%ld] = ", i);
     bufferlen = strlen(buffer);
     add_node(self, ELTN_VALUE_NUMBER, buffer, bufferlen);
     set_last_key(self, buffer, bufferlen - 3);
