@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
 
         switch (event) {
         case ELTN_ERROR:
-            printf("%s %s [[%*s]]\n", evstr, errstr, strlen, string);
+            printf("%s %s <<%*s>>\n", evstr, errstr, strlen, string);
         case ELTN_STREAM_START:
         case ELTN_STREAM_END:
             printf("&s\n", evstr);
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
             printf("&s }\n", evstr);
             break;
         default:
-            printf("&s [[%*s]]\n", evstr, strlen, string);
+            printf("&s <<%*s>>\n", evstr, strlen, string);
             break;
         }
         free(string);

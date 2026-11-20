@@ -245,8 +245,8 @@ static void set_last_key(ELTN_Emitter* self, const char* key, size_t keylen) {
 }
 
 static void copy_path(ELTN_Emitter* self, ELTN_Pool* pool, char** strptr,
-                      size_t lenptr) {
-    String_Buffer* path = String_Buffer_new_with_pool(NULL);
+                      size_t* lenptr) {
+    String_Buffer* path = String_Buffer_new_with_pool(pool);
     bool first = true;
 
     for (Key_Stack_Frame * f = self->bottom; f != NULL; f = f->prev) {
@@ -312,7 +312,7 @@ static bool handle_irregular_keys(ELTN_Emitter* self, const char* s,
                                   size_t length) {
     // check that the preceding Node is not another key (unqualified error)
     if (last_node_was_key(self)) {
-        raise_error(self, ELTN_ERR_UNEXPECTED_TOKEN);
+        raise_error(self, ELTN_ERR_KEY_WITHOUT_VALUE);
         return false;
     }
     // check that name isn't a duplicate key (unqualified error)

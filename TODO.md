@@ -66,24 +66,14 @@ Testing
 
 ### Emitter
 
-- Test each event method
-  - `ELTN_Emitter_key_string`
-     - long-string keys
-  - `ELTN_Emitter_value_string`
-     - long string values
-  - `ELTN_Emitter_comment`
-
 - Variants of basic data types:
   - escape codes in quoted strings
   - long strings become Long Strings
   - DEF_NAMEs screened for non-identifier chars
 
 - Test error detection (`ELTN_Emitter_error_code`)
-  - duplicate key in table
   - unclosed table (error or auto-fix?)
   - key / def-name without value
-
-- Test `ELTN_Emitter_error_path`
 
 - Test `ELTN_Emitter_write_file`
   - error in file write
