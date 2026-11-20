@@ -360,10 +360,18 @@ ELTN_API bool ELTN_Emitter_key_string(ELTN_Emitter* self, const char* s,
         ELTN_quote_string(self->pool, (const char8_t *)s, len,
                           &quoted_string, &quoted_length);
 
-        String_Buffer_append_string(outbuf, "[ ", 2);
-        String_Buffer_append_string(outbuf, (const char *)quoted_string,
-                                    quoted_length);
-        String_Buffer_append_string(outbuf, " ] = ", 5);
+        if (quoted_string[0] == '[') {
+            String_Buffer_append_string(outbuf, "[ ", 2);
+            String_Buffer_append_string(outbuf, (const char *)quoted_string,
+                                        quoted_length);
+            String_Buffer_append_string(outbuf, " ]", 2);
+        } else {
+            String_Buffer_append_char(outbuf, '[');
+            String_Buffer_append_string(outbuf, (const char *)quoted_string,
+                                        quoted_length);
+            String_Buffer_append_char(outbuf, ']');
+        }
+        String_Buffer_append_string(outbuf, " = ", 3);
         String_Buffer_to_string(outbuf, (char **)&outstr, &outlen);
 
         if (String_Buffer_memory_error(outbuf)) {
@@ -539,7 +547,7 @@ ELTN_API bool ELTN_Emitter_comment(ELTN_Emitter* self, const char* s,
     ELTN_format_comment(self->pool, (const char8_t *)s, len, &outstr, &outlen);
     add_node(self, ELTN_COMMENT, (const char *)outstr, outlen);
     ELTN_free(self->pool, outstr);
-    return false;
+    return true;
 }
 
 /*----------------------------- Queries ----------------------------------*/
@@ -703,7 +711,9 @@ ELTN_API ssize_t ELTN_Emitter_write(ELTN_Emitter* self, ELTN_Writer writer,
             break;
         }
         total_bytes += nwrite;
-        if (ELTN_Emitter_pretty_print(self) && end_of_line(node->event)) {
+        if (ELTN_Emitter_pretty_print(self)
+                && end_of_line(node->event)
+                && node->string[node->strlen-1] != '\n') {
             error = writer(state, "\n", 1, &nwrite);
             if (error) {
                 break;

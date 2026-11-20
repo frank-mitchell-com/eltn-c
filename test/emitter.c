@@ -31,6 +31,7 @@ static void debug_string(const char* string, const size_t len) {
 
     for (size_t i = 0; i < len; i++) {
         char c = string[i];
+
         if (c == ' ' || isprint(c)) {
             printf("%c", c);
         } else {
@@ -114,8 +115,6 @@ void emitter_def_table() {
 
     ELTN_Emitter_free(emitter);
 }
-
-
 
 void emitter_table() {
     const char* expected =
@@ -288,7 +287,7 @@ void emitter_all_key_types() {
     const char* expected =
         "{\n"
         "    string = 1,\n"
-        "    [ \"quoted string\" ] = 2,\n"
+        "    [\"quoted string\"] = 2,\n"
         "    [11] = 3,\n"
         "    [5.5] = 4,\n"
         "}\n";
@@ -415,18 +414,175 @@ void emitter_all_value_types() {
     ELTN_Emitter_free(emitter);
 }
 
+void emitter_long_strings() {
+    ELTN_Emitter* emitter = ELTN_Emitter_new();
+    char* result = NULL;
+    size_t reslen = 0;
+    bool ok = true;
+
+    const char* long_key_string =
+        "this is a long key string containing [[this]] and [==[this]==] but which can easily be ended with an order 1 quote";
+    const char* long_value_string =
+        "this is an equally long string that just rambles on\nuntil it hits the 80 character limit to be formatted as long.";
+    const char* expected =
+        "{\n"
+        "    [ [=["
+        "this is a long key string containing [[this]] and [==[this]==] but which can easily be ended with an order 1 quote"
+        "]=] ] = [["
+        "this is an equally long string that just rambles on\nuntil it hits the 80 character limit to be formatted as long."
+        "]],\n"
+        "}\n";
+    const int explen = strlen(expected);
+
+    ok = (ELTN_Emitter_table_start(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    ok = (ELTN_Emitter_key_string
+          (emitter, long_key_string, strlen(long_key_string)));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    ok = (ELTN_Emitter_value_string
+          (emitter, long_value_string, strlen(long_value_string)));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    ok = (ELTN_Emitter_table_end(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    ELTN_Emitter_write_string(emitter, &result, &reslen);
+
+    ok = (result != NULL);
+    if (result != NULL) {
+        lsequal(expected, result);
+        lequal(explen, (int)reslen);
+        free(result);
+    }
+
+    ELTN_Emitter_free(emitter);
+}
+
 void emitter_comments() {
-    /*
-     * TODO: test short comments
-     * TODO: test long comments
-     * TODO: test different indent
-     */
+    const char* expected =
+        "-- This is a short comment\n"
+        "table = {\n"
+        "  test = 1,\n"
+        "  --[[This is a much longer comment, a Long Comment in fact,\n"
+        "which has to occupy at least 80 characters to be recognized as such]]\n"
+        "  another = 2,\n"
+        "  third = 3,\n"
+        "}\n";
+    const int explen = strlen(expected);
+
+    ELTN_Emitter* emitter = ELTN_Emitter_new();
+    char* result = NULL;
+    size_t reslen = 0;
+    bool ok = true;
+
+    ELTN_Emitter_set_indent(emitter, 2);
+
+    ok = (ELTN_Emitter_comment(emitter, "This is a short comment", 23));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_def_name(emitter, "table", 5));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_table_start(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_key_string(emitter, "test", 4));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 1.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_comment(emitter, "This is a much longer comment, a Long Comment in fact,\nwhich has to occupy at least 80 characters to be recognized as such", 122));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_key_string(emitter, "another", 7));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 2.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_key_string(emitter, "third", 5));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 3.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_table_end(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+
+    ELTN_Emitter_write_string(emitter, &result, &reslen);
+
+    ok = (result != NULL);
+    if (result != NULL) {
+        lsequal(expected, result);
+        lequal(explen, (int)reslen);
+        free(result);
+    }
+
+    ELTN_Emitter_free(emitter);
 }
 
 void emitter_no_pretty() {
-    /*
-     * TODO: test without pretty printing
-     */
+    const char* expected =
+        "table = {test = 1,another = 2,third = 3,}";
+    const int explen = strlen(expected);
+
+    ELTN_Emitter* emitter = ELTN_Emitter_new();
+    char* result = NULL;
+    size_t reslen = 0;
+    bool ok = true;
+
+    ELTN_Emitter_set_pretty_print(emitter, false);
+
+    ok = (ELTN_Emitter_def_name(emitter, "table", 5));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_table_start(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_key_string(emitter, "test", 4));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 1.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_key_string(emitter, "another", 7));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 2.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_key_string(emitter, "third", 5));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_value_number(emitter, 3.0));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+    ok = (ELTN_Emitter_table_end(emitter));
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+    lok(ok);
+
+    lequal(ELTN_OK, ELTN_Emitter_error_code(emitter));
+
+    ELTN_Emitter_write_string(emitter, &result, &reslen);
+
+    ok = (result != NULL);
+    if (result != NULL) {
+        lsequal(expected, result);
+        lequal(explen, (int)reslen);
+        free(result);
+    }
+
+    ELTN_Emitter_free(emitter);
 }
 
 void emitter_error() {
@@ -443,6 +599,7 @@ int main(void) {
     lrun("test_emitter_current_path", emitter_current_path);
     lrun("test_emitter_all_key_types", emitter_all_key_types);
     lrun("test_emitter_all_value_types", emitter_all_value_types);
+    lrun("test_emitter_long_strings", emitter_long_strings);
     lrun("test_emitter_comments", emitter_comments);
     lrun("test_emitter_no_pretty", emitter_no_pretty);
     lrun("test_emitter_error", emitter_error);
