@@ -108,6 +108,7 @@ ELTN_API void ELTN_Emitter_free(ELTN_Emitter* self) {
         }
         ELTN_free(h, oldframe);
     }
+    ELTN_free(h, self->error_path);
     ELTN_free(h, self);
     ELTN_Pool_release(&h);
 }
@@ -243,11 +244,35 @@ static void set_last_key(ELTN_Emitter* self, const char* key, size_t keylen) {
     }
 }
 
+static void copy_path(ELTN_Emitter* self, ELTN_Pool* pool, char** strptr,
+                      size_t lenptr) {
+    String_Buffer* path = String_Buffer_new_with_pool(NULL);
+    bool first = true;
+
+    for (Key_Stack_Frame * f = self->bottom; f != NULL; f = f->prev) {
+        if (f->last_key != NULL) {
+            if (f->last_key[0] != '[' && !first) {
+                String_Buffer_append_char(path, '.');
+            }
+            String_Buffer_append_string(path, (const char *)f->last_key,
+                                        f->last_key_size);
+            first = false;
+        }
+    }
+    String_Buffer_to_string(path, strptr, lenptr);
+    String_Buffer_free(path);
+}
+
+static bool has_error(ELTN_Emitter* self) {
+    return self->error_code != ELTN_OK;
+}
+
 static void raise_error(ELTN_Emitter* self, ELTN_Error errcode) {
     // TODO: Should this be an error list?
     if (self->error_code == ELTN_OK) {
         self->error_code = errcode;
-        // TODO: compute error_path from stack's current keys
+        copy_path(self, self->pool, &(self->error_path),
+                  &(self->error_path_len));
     }
 }
 
@@ -306,6 +331,10 @@ ELTN_API bool ELTN_Emitter_def_name(ELTN_Emitter* self, const char* n,
                                     size_t length) {
     char buffer[length + 4];
 
+    if (has_error(self)) {
+        return false;
+    }
+
     if (self->top == NULL) {
         push_stack(self);
         self->top->is_def_table = true;
@@ -339,6 +368,9 @@ ELTN_API bool ELTN_Emitter_def_name(ELTN_Emitter* self, const char* n,
 
 ELTN_API bool ELTN_Emitter_key_string(ELTN_Emitter* self, const char* s,
                                       size_t len) {
+    if (has_error(self)) {
+        return false;
+    }
     // handle redundant and duplicate keys
     if (!handle_irregular_keys(self, s, len)) {
         return false;
@@ -392,6 +424,10 @@ ELTN_API bool ELTN_Emitter_key_number(ELTN_Emitter* self, double n) {
     char buffer[INIT_BUFFER_SIZE];
     size_t bufferlen;
 
+    if (has_error(self)) {
+        return false;
+    }
+
     memset(buffer, 0, sizeof(buffer));
     bufferlen = snprintf(buffer, sizeof(buffer) - 1, "%g", n);
 
@@ -411,6 +447,10 @@ ELTN_API bool ELTN_Emitter_key_number(ELTN_Emitter* self, double n) {
 ELTN_API bool ELTN_Emitter_key_integer(ELTN_Emitter* self, long int i) {
     char buffer[INIT_BUFFER_SIZE];
     size_t bufferlen;
+
+    if (has_error(self)) {
+        return false;
+    }
 
     memset(buffer, 0, sizeof(buffer));
     bufferlen = snprintf(buffer, sizeof(buffer) - 1, "%ld", i);
@@ -436,6 +476,10 @@ ELTN_API bool ELTN_Emitter_value_string(ELTN_Emitter* self, const char* s,
     char* full_string;
     size_t quoted_length, full_length;
 
+    if (has_error(self)) {
+        return false;
+    }
+
     if (!handle_possible_sequence(self)) {
         return false;
     }
@@ -457,6 +501,10 @@ ELTN_API bool ELTN_Emitter_value_number(ELTN_Emitter* self, double n) {
     char buffer[INIT_BUFFER_SIZE];
     char sep = (self->depth == 0) ? ';' : ',';
 
+    if (has_error(self)) {
+        return false;
+    }
+
     if (!handle_possible_sequence(self)) {
         return false;
     }
@@ -471,6 +519,10 @@ ELTN_API bool ELTN_Emitter_value_integer(ELTN_Emitter* self, long int i) {
     char buffer[INIT_BUFFER_SIZE];
     char sep = (self->depth == 0) ? ';' : ',';
 
+    if (has_error(self)) {
+        return false;
+    }
+
     if (!handle_possible_sequence(self)) {
         return false;
     }
@@ -484,6 +536,10 @@ ELTN_API bool ELTN_Emitter_value_integer(ELTN_Emitter* self, long int i) {
 ELTN_API bool ELTN_Emitter_value_boolean(ELTN_Emitter* self, bool b) {
     char buffer[INIT_BUFFER_SIZE];
     char sep = (self->depth == 0) ? ';' : ',';
+
+    if (has_error(self)) {
+        return false;
+    }
 
     if (!handle_possible_sequence(self)) {
         return false;
@@ -504,6 +560,10 @@ ELTN_API bool ELTN_Emitter_value_nil(ELTN_Emitter* self) {
     char buffer[INIT_BUFFER_SIZE];
     char sep = (self->depth == 0) ? ';' : ',';
 
+    if (has_error(self)) {
+        return false;
+    }
+
     if (!handle_possible_sequence(self)) {
         return false;
     }
@@ -515,6 +575,10 @@ ELTN_API bool ELTN_Emitter_value_nil(ELTN_Emitter* self) {
 }
 
 ELTN_API bool ELTN_Emitter_table_start(ELTN_Emitter* self) {
+    if (has_error(self)) {
+        return false;
+    }
+
     add_node(self, ELTN_TABLE_START, "{", 1);
     self->depth++;
     push_stack(self);
@@ -522,6 +586,9 @@ ELTN_API bool ELTN_Emitter_table_start(ELTN_Emitter* self) {
 }
 
 ELTN_API bool ELTN_Emitter_table_end(ELTN_Emitter* self) {
+    if (has_error(self)) {
+        return false;
+    }
     // check that the preceding Node is not another key (unqualified error)
     if (last_node_was_key(self)) {
         raise_error(self, ELTN_ERR_UNEXPECTED_TOKEN);
@@ -544,6 +611,10 @@ ELTN_API bool ELTN_Emitter_comment(ELTN_Emitter* self, const char* s,
     char8_t* outstr;
     size_t outlen;
 
+    if (has_error(self)) {
+        return false;
+    }
+
     ELTN_format_comment(self->pool, (const char8_t *)s, len, &outstr, &outlen);
     add_node(self, ELTN_COMMENT, (const char *)outstr, outlen);
     ELTN_free(self->pool, outstr);
@@ -558,20 +629,7 @@ ELTN_API unsigned int ELTN_Emitter_current_depth(ELTN_Emitter* self) {
 
 ELTN_API void ELTN_Emitter_current_path(ELTN_Emitter* self, char** strptr,
                                         size_t* lenptr) {
-    String_Buffer* path = String_Buffer_new_with_pool(NULL);
-    bool first = true;
-
-    for (Key_Stack_Frame * f = self->bottom; f != NULL; f = f->prev) {
-        if (f->last_key != NULL) {
-            if (f->last_key[0] != '[' && !first) {
-                String_Buffer_append_char(path, '.');
-            }
-            String_Buffer_append_string(path, (const char *)f->last_key,
-                                        f->last_key_size);
-            first = false;
-        }
-    }
-    String_Buffer_to_string(path, strptr, lenptr);
+    copy_path(self, NULL, strptr, lenptr);
 }
 
 ELTN_API ELTN_Error ELTN_Emitter_error_code(ELTN_Emitter* self) {
@@ -580,12 +638,17 @@ ELTN_API ELTN_Error ELTN_Emitter_error_code(ELTN_Emitter* self) {
 
 ELTN_API void ELTN_Emitter_error_path(ELTN_Emitter* self, char** strptr,
                                       size_t* lenptr) {
-    // TODO save path from last error.
     if (self->error_path == NULL) {
         ELTN_new_string(strptr, lenptr, "", 0);
     } else {
         ELTN_new_string(strptr, lenptr, self->error_path, self->error_path_len);
     }
+}
+
+ELTN_API void ELTN_Emitter_clear_error(ELTN_Emitter* self) {
+    self->error_code = ELTN_OK;
+    ELTN_free(self->pool, self->error_path);
+    self->error_path = NULL;
 }
 
 /*----------------------------- Properties -----------------------------*/
@@ -658,6 +721,7 @@ ELTN_API void ELTN_Emitter_write_string(ELTN_Emitter* self, char** strptr,
 static void repeat(ELTN_Pool* h, char c, unsigned int reps,
                    char** strptr, size_t* sizptr) {
     String_Buffer* result = String_Buffer_new_with_pool(h);
+
     for (unsigned int i = 0; i < reps; i++) {
         String_Buffer_append_char(result, c);
     }
@@ -687,7 +751,6 @@ ELTN_API ssize_t ELTN_Emitter_write(ELTN_Emitter* self, ELTN_Writer writer,
     if (self == NULL || writer == NULL) {
         return -1;
     }
-
     // Assemble contents from stored events and flags
     for (Node * node = self->first; node != NULL; node = node->next) {
 
@@ -712,8 +775,8 @@ ELTN_API ssize_t ELTN_Emitter_write(ELTN_Emitter* self, ELTN_Writer writer,
         }
         total_bytes += nwrite;
         if (ELTN_Emitter_pretty_print(self)
-                && end_of_line(node->event)
-                && node->string[node->strlen-1] != '\n') {
+            && end_of_line(node->event)
+            && node->string[node->strlen - 1] != '\n') {
             error = writer(state, "\n", 1, &nwrite);
             if (error) {
                 break;

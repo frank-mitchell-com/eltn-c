@@ -790,6 +790,15 @@ ELTN_API void ELTN_Emitter_error_path(ELTN_Emitter * emitter, char** strptr,
                                       size_t* lenptr);
 
 /**
+ * Clears the most recent error.
+ * `ELTN_Emitter_error_code()` will once again return `ELTN_OK`.
+ * Has no effect if the error code is not set.
+ *
+ * @param emitter the emitter
+ */
+ELTN_API void ELTN_Emitter_clear_error(ELTN_Emitter * emitter);
+
+/**
  * The current setting of the "pretty print" flag.
  * If set to `true` (the default), the document will contain newlines and
  * space characters to make it more readable.  Setting it to `false` creates
