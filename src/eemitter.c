@@ -647,30 +647,14 @@ ELTN_API void ELTN_Emitter_write_string(ELTN_Emitter* self, char** strptr,
     String_Buffer_free(buffer);
 }
 
-static const char* repeat(char c, unsigned int reps) {
-    static char* buf = NULL;
-    static size_t bufsiz = 0;
-
-    if (reps == 0 && buf != NULL) {
-        free(buf);
-        buf = NULL;
-        bufsiz = 0;
-        return "";
-    }
-
-    if (buf == NULL || bufsiz < reps + 1) {
-        buf = realloc(buf, reps + 1);
-        if (buf == NULL) {
-            bufsiz = 0;
-            return "";
-        }
-        bufsiz = reps + 1;
-    }
+static void repeat(ELTN_Pool* h, char c, unsigned int reps,
+                   char** strptr, size_t* sizptr) {
+    String_Buffer* result = String_Buffer_new_with_pool(h);
     for (unsigned int i = 0; i < reps; i++) {
-        buf[i] = c;
+        String_Buffer_append_char(result, c);
     }
-    buf[reps] = '\0';
-    return buf;
+    String_Buffer_to_string(result, strptr, sizptr);
+    String_Buffer_free(result);
 }
 
 static bool end_of_line(ELTN_Event event) {
@@ -701,12 +685,18 @@ ELTN_API ssize_t ELTN_Emitter_write(ELTN_Emitter* self, ELTN_Writer writer,
 
         if (ELTN_Emitter_pretty_print(self) && end_of_line(last_event)) {
             unsigned int spaces = node->depth * ELTN_Emitter_indent(self);
+            char* space_str = NULL;
+            size_t space_siz = 0;
 
-            error = writer(state, repeat(' ', spaces), spaces, &nwrite);
+            repeat(self->pool, ' ', spaces, &space_str, &space_siz);
+
+            error = writer(state, space_str, space_siz, &nwrite);
             if (error) {
                 break;
             }
             total_bytes += nwrite;
+
+            ELTN_free(self->pool, space_str);
         }
         error = writer(state, (char *)node->string, node->strlen, &nwrite);
         if (error) {
@@ -729,6 +719,5 @@ ELTN_API ssize_t ELTN_Emitter_write(ELTN_Emitter* self, ELTN_Writer writer,
         // TODO: distinguish errno codes
         raise_error(self, ELTN_ERR_UNKNOWN);
     }
-    repeat('\0', 0);
     return error == 0 ? total_bytes : -1;
 }
