@@ -630,9 +630,14 @@ static int String_Buffer_Writer(void* state, const char* text, size_t size,
 
 ELTN_API void ELTN_Emitter_write_string(ELTN_Emitter* self, char** strptr,
                                         size_t* lenptr) {
-    ssize_t nwritten = 0;
-    String_Buffer* buffer = String_Buffer_new_with_pool(NULL);
+    ssize_t nwritten;
+    String_Buffer* buffer;
 
+    if (strptr == NULL || lenptr == NULL || self == NULL) {
+        return;
+    }
+
+    buffer = String_Buffer_new_with_pool(NULL);
     nwritten = ELTN_Emitter_write(self, String_Buffer_Writer, buffer);
     if (nwritten < 0 && self->error_code == ELTN_OK) {
         self->error_code = ELTN_ERR_UNKNOWN;
@@ -686,6 +691,10 @@ ELTN_API ssize_t ELTN_Emitter_write(ELTN_Emitter* self, ELTN_Writer writer,
     size_t nwrite = 0;
     int error = 0;
     ELTN_Event last_event = ELTN_STREAM_START;
+
+    if (self == NULL || writer == NULL) {
+        return -1;
+    }
 
     // Assemble contents from stored events and flags
     for (Node * node = self->first; node != NULL; node = node->next) {

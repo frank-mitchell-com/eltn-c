@@ -76,7 +76,7 @@ static int File_Reader(void* state, char** strptr, size_t* sizeptr) {
 }
 
 ELTN_API ssize_t ELTN_Parser_read_file(ELTN_Parser* self, FILE* fp) {
-    if (fp == NULL) {
+    if (self == NULL || fp == NULL) {
         return -1;
     }
 
@@ -97,13 +97,18 @@ static int File_Writer(void* state, const char* text, size_t size,
         clearerr(fp);
     }
 
+    if (size == 0) {
+        int result = fflush(fp);
+        return (result == 0) ? 0 : errno;
+    }
+
     (*nwriteptr) = fwrite(text, sizeof(char), size, fp);
 
     return errno;
 }
 
 ELTN_API ssize_t ELTN_Emitter_write_file(ELTN_Emitter* self, FILE* fp) {
-    if (fp == NULL) {
+    if (self == NULL || fp == NULL) {
         return -1;
     }
     return ELTN_Emitter_write(self, File_Writer, fp);
