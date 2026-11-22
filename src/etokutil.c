@@ -192,13 +192,13 @@ void ELTN_quote_string(ELTN_Pool* h,
             case '\'':
                 String_Buffer_append_string(strbuf, "\\\'", 2);
                 break;
-            case 0x07:
+            case '\a':
                 String_Buffer_append_string(strbuf, "\\a", 2);
                 break;
-            case 0x08:
+            case '\b':
                 String_Buffer_append_string(strbuf, "\\b", 2);
                 break;
-            case 0x0c:
+            case '\f':
                 String_Buffer_append_string(strbuf, "\\f", 2);
                 break;
             case '\n':
@@ -210,7 +210,7 @@ void ELTN_quote_string(ELTN_Pool* h,
             case '\t':
                 String_Buffer_append_string(strbuf, "\\t", 2);
                 break;
-            case 0x0b:
+            case '\v':
                 String_Buffer_append_string(strbuf, "\\v", 2);
                 break;
             default:
@@ -323,37 +323,37 @@ void ELTN_unescape_quoted_string(ELTN_Pool* h,
                 }
                 break;
             case 'a':
-                bufptr[buflen] = 0x07;
+                bufptr[buflen] = '\a';
                 buflen++;
                 index++;
                 break;
             case 'b':
-                bufptr[buflen] = 0x08;
+                bufptr[buflen] = '\b';
                 buflen++;
                 index++;
                 break;
             case 'f':
-                bufptr[buflen] = 0x0c;
+                bufptr[buflen] = '\f';
                 buflen++;
                 index++;
                 break;
             case 'n':
-                bufptr[buflen] = 0x0a;
+                bufptr[buflen] = '\n';
                 buflen++;
                 index++;
                 break;
             case 'r':
-                bufptr[buflen] = 0x0d;
+                bufptr[buflen] = '\r';
                 buflen++;
                 index++;
                 break;
             case 't':
-                bufptr[buflen] = 0x09;
+                bufptr[buflen] = '\t';
                 buflen++;
                 index++;
                 break;
             case 'v':
-                bufptr[buflen] = 0x0b;
+                bufptr[buflen] = '\v';
                 buflen++;
                 index++;
                 break;
