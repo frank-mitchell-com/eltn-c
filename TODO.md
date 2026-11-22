@@ -103,7 +103,6 @@ Testing
 Documentation
 -------------
 
-- Emerging ELTN spec in `./doc`
 - Better in-code documentation (i.e. comments)
 
 

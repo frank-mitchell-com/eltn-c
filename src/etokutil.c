@@ -120,6 +120,12 @@ static void ELTN_quote_long_string(ELTN_Pool* h,
     String_Buffer* lqbuffer = String_Buffer_new_with_pool(h);
     String_Buffer* outbuffer;
 
+    if (lqbuffer == NULL) {
+        (*outstrptr) = NULL;
+        (*outlenptr) = 0;
+        return;
+    }
+
     // scan instr for long quote marks
     for (int i = 0; i < BUFFER_SIZE; i++) {
         String_Buffer_clear(lqbuffer);
@@ -143,8 +149,13 @@ static void ELTN_quote_long_string(ELTN_Pool* h,
     String_Buffer_free(lqbuffer);
 
     // bracket with non-conflicting long quotes
-    outbuffer = String_Buffer_new_with_pool(h);
     if (quote_level < 0) {
+        (*outstrptr) = NULL;
+        (*outlenptr) = 0;
+        return;
+    }
+    outbuffer = String_Buffer_new_with_pool(h);
+    if (outbuffer == NULL) {
         (*outstrptr) = NULL;
         (*outlenptr) = 0;
         return;
@@ -591,6 +602,10 @@ bool ELTN_is_letter(uint32_t c) {
 }
 
 bool ELTN_is_digit(uint32_t c) {
+    /*`
+     * Using a big switch statement because <ctype.h> functions
+     * depend on locale, while ELTN's idea of a letter doesn't.
+     */
     switch (c) {
     case '0':
     case '1':
@@ -609,6 +624,10 @@ bool ELTN_is_digit(uint32_t c) {
 }
 
 bool ELTN_is_hexdigit(uint32_t c) {
+    /*`
+     * Using a big switch statement because <ctype.h> functions
+     * depend on locale, while ELTN's idea of a letter doesn't.
+     */
     switch (c) {
     case '0':
     case '1':
@@ -639,6 +658,10 @@ bool ELTN_is_hexdigit(uint32_t c) {
 }
 
 bool ELTN_is_octdigit(uint32_t c) {
+    /*`
+     * Using a big switch statement because <ctype.h> functions
+     * depend on locale, while ELTN's idea of a letter doesn't.
+     */
     switch (c) {
     case '0':
     case '1':
@@ -663,6 +686,10 @@ bool ELTN_is_name_part(uint32_t c) {
 }
 
 bool ELTN_is_number_part(uint32_t c) {
+    /*`
+     * Using a big switch statement because <ctype.h> functions
+     * depend on locale, while ELTN's idea of a letter doesn't.
+     */
     switch (c) {
     case '.':
     case '+':
