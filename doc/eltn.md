@@ -1,4 +1,4 @@
-ELTN v1.0.0
+ELTN v1.0.1
 ===========
 
 Extended Lua Table Notation
@@ -678,11 +678,16 @@ The grammar's notation is as follows:
 
 `"\`*x*`"`
 : An escape sequence denoting a non-printable or confusing character.
-  A literal `"` is written as `"\"`; a literal \\ is written as `"\\"`.
   See [**Escape Sequences**](#escape-sequences), above.
 
+`"\""`
+: A literal `"`.
+
+`"\\"`
+: A literal `\`.
+
 *x* `,` *y*
-: A sequence containing both *x* and *y*.
+: A sequence of *x* followed by *y*.
 
 *x* `|` *y*
 : Either *x* or *y*. 
@@ -766,6 +771,7 @@ escape_sequence = "\\" , dquo
                     | "\\" , "x" , hexdigit , hexdigit
                     | "\\" , octdigit [ octdigit [ octdigit ] ]
                     | "\\" , "u{" , hexdigit , { hexdigit } , "}" ;
+                    | "\\" , "\\"
 
 long_string     = long_open_N , long_sequence_N , long_close_N ;
 
