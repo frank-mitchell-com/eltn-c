@@ -408,28 +408,7 @@ static void set_event(ELTN_Parser* self, ELTN_Token token, ELTN_Event event) {
     }
 }
 
-static void signal_error(ELTN_Parser* self, ELTN_Token token,
-                         int line, int column) {
-    self->event = ELTN_ERROR;
-    capture_token_buffer(self);
-    set_string_copy(self, self->text, self->text_len);
-    self->errline = line;
-    self->errcolumn = column;
-    if (token == ELTN_TOKEN_INVALID) {
-        self->errcode = ELTN_ERR_INVALID_TOKEN;
-    } else if (token == ELTN_TOKEN_EOF) {
-        self->errcode = ELTN_ERR_STREAM_END;
-    } else if (token == ELTN_TOKEN_ERROR) {
-        /*
-         * TODO: Be more specific
-         */
-        self->errcode = ELTN_ERR_UNKNOWN;
-    } else {
-        self->errcode = ELTN_ERR_UNEXPECTED_TOKEN;
-    }
-}
-
-static void signal_error_2(ELTN_Parser* self,
+static void signal_error(ELTN_Parser* self,
                            ELTN_Error error, int line, int column) {
     self->event = ELTN_ERROR;
     capture_token_buffer(self);
@@ -438,6 +417,26 @@ static void signal_error_2(ELTN_Parser* self,
     self->errline = line;
     self->errcolumn = column;
 }
+
+static void signal_error_token(ELTN_Parser* self, ELTN_Token token, int line,
+                               int column) {
+    ELTN_Error error;
+
+    if (token == ELTN_TOKEN_INVALID) {
+        error = ELTN_ERR_INVALID_TOKEN;
+    } else if (token == ELTN_TOKEN_EOF) {
+        error = ELTN_ERR_STREAM_END;
+    } else if (token == ELTN_TOKEN_ERROR) {
+        /*
+         * TODO: Be more specific
+         */
+        error = ELTN_ERR_UNKNOWN;
+    } else {
+        error = ELTN_ERR_UNEXPECTED_TOKEN;
+    }
+    signal_error(self, error, line, column);
+}
+
 
 static ELTN_Token next_token(ELTN_Parser* self, int* lineptr, int* columnptr) {
     ELTN_Token nextToken =
@@ -509,7 +508,7 @@ static void check_duplicate_key(ELTN_Parser* self, Key_Type type, int* lineptr,
     if (self->top != NULL) {
         if (Key_Set_has_key(self->top->keys, type, self->string,
                             self->string_len)) {
-            signal_error_2(self, ELTN_ERR_DUPLICATE_KEY, *lineptr, *colptr);
+            signal_error(self, ELTN_ERR_DUPLICATE_KEY, *lineptr, *colptr);
             return;
         }
         Key_Set_add_key(self->top->keys, type, self->string, self->string_len);
@@ -549,7 +548,7 @@ static bool expect_new_entry(ELTN_Parser* self, ELTN_Token token, int* lineptr,
         }
         token = next_token(self, lineptr, colptr);
         if (token != ELTN_TOKEN_SQUARE_CLOSE) {
-            signal_error_2(self, ELTN_ERR_UNEXPECTED_TOKEN, *lineptr, *colptr);
+            signal_error(self, ELTN_ERR_UNEXPECTED_TOKEN, *lineptr, *colptr);
         }
         return true;
     }
@@ -635,7 +634,7 @@ ELTN_API void ELTN_Parser_next(ELTN_Parser* self) {
         } else if (expect_stream_end(self, token)) {
             return;
         } else {
-            signal_error(self, token, line, column);
+            signal_error_token(self, token, line, column);
         }
         break;
     case ELTN_COMMENT:
@@ -648,14 +647,14 @@ ELTN_API void ELTN_Parser_next(ELTN_Parser* self) {
     case ELTN_KEY_INTEGER:
         // expect a value for this key or a table start
         if (token != ELTN_TOKEN_EQUALS) {
-            signal_error(self, token, line, column);
+            signal_error_token(self, token, line, column);
             return;
         }
         token = next_token(self, &line, &column);
         if (expect_value(self, token)) {
             return;
         } else {
-            signal_error(self, token, line, column);
+            signal_error_token(self, token, line, column);
         }
         break;
     case ELTN_TABLE_END:
@@ -672,7 +671,7 @@ ELTN_API void ELTN_Parser_next(ELTN_Parser* self) {
             } else if (expect_stream_end(self, token)) {
                 return;
             } else {
-                signal_error(self, token, line, column);
+                signal_error_token(self, token, line, column);
             }
         } else if (token == ELTN_TOKEN_COMMA || token == ELTN_TOKEN_SEMICOLON) {
             // bypass the (required) separator, unless this is the top level
@@ -683,13 +682,13 @@ ELTN_API void ELTN_Parser_next(ELTN_Parser* self) {
             } else if (expect_table_end(self, token)) {
                 return;
             } else {
-                signal_error(self, token, line, column);
+                signal_error_token(self, token, line, column);
             }
         } else {
             if (expect_table_end(self, token)) {
                 return;
             } else {
-                signal_error(self, token, line, column);
+                signal_error_token(self, token, line, column);
             }
         }
         break;
@@ -700,7 +699,7 @@ ELTN_API void ELTN_Parser_next(ELTN_Parser* self) {
         } else if (expect_table_end(self, token)) {
             return;
         } else {
-            signal_error(self, token, line, column);
+            signal_error_token(self, token, line, column);
         }
         break;
     case ELTN_STREAM_END:
