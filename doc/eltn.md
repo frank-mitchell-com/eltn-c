@@ -770,8 +770,8 @@ escape_sequence = "\\" , dquo
                     | "\\" , ("a"|"b"|"f"|"n"|"r"|"t"|"v")
                     | "\\" , "x" , hexdigit , hexdigit
                     | "\\" , octdigit [ octdigit [ octdigit ] ]
-                    | "\\" , "u{" , hexdigit , { hexdigit } , "}" ;
-                    | "\\" , "\\"
+                    | "\\" , "u{" , hexdigit , { hexdigit } , "}"
+                    | "\\" , "\\" ;
 
 long_string     = long_open_N , long_sequence_N , long_close_N ;
 
