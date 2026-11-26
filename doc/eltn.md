@@ -670,7 +670,7 @@ The grammar's notation is as follows:
 `lower_case`
 : A reference to a grammar rule, defined with the symbol `=`.
 
-`SOME WORDS`
+`? SOME WORDS ?`
 : A description of a rule in plain English.
 
 `"`*x*`"`
@@ -741,7 +741,7 @@ ws              = { whitespace | comment } ;
 
 whitespace      = " " | "\f" | "\n" | "\r" | "\t" | "\v" ;
 
-comment         = ( "--" , NOT A NEWLINE , newline )
+comment         = ( "--" , ? NOT A NEWLINE ? , newline )
                     | ( "--" , long_string ) ;
 
 newline         = "\n" | "\r\n" ;
@@ -759,9 +759,9 @@ dquo            = """" ;    (* should be "\"" but for syntax highlighter *)
 
 squo            = "'" ;
 
-qstr_char_dquo  = NOT A dquo OR A NEWLINE;
+qstr_char_dquo  = ? NOT A dquo OR A "\\" OR A NEWLINE ? ;
 
-qstr_char_squo  = NOT A squo OR A NEWLINE;
+qstr_char_squo  = ? NOT A squo OR A "\\" OR A NEWLINE ? ;
 
 escape_sequence = "\\" , dquo
                     | "\\" , squo
@@ -773,13 +773,13 @@ escape_sequence = "\\" , dquo
                     | "\\" , "u{" , hexdigit , { hexdigit } , "}"
                     | "\\" , "\\" ;
 
-long_string     = long_open_N , long_sequence_N , long_close_N ;
+long_string      = long_open(N) , long_sequence(N) , long_close(N) ;
 
-long_open_N     = ( "[" , { "=" } , "[" ) FOR EXACTLY N "=" ;
+long_open(N)     = ( "[" , { "=" } , "[" ) ? FOR EXACTLY N "=" ? ;
 
-long_sequence_N = NOT A long_close_N ;
+long_sequence(N) = ? NOT A long_close(N) ? ;
 
-long_close_N    = ( "]" , { "=" } , "]" ) FOR EXACTLY N "=" ;
+long_close(N)    = ( "]" , { "=" } , "]" ) ? FOR EXACTLY N "=" ? ;
 ```
 
 #### Names and Reserved Words
@@ -794,7 +794,7 @@ reserved_word   = "and" | "break" | "do" | "else" | "elseif" | "end" | "for"
                     | "or" | "repeat" | "return" | "then" | "until" | "while" ;
 
 name            = (namestart { namepart })
-                    AND NOT nil, A boolean, OR A reserved_word ;
+                    ? AND NOT nil, A boolean, OR A reserved_word ? ;
 
 namestart       = letter | "_" ;
 
