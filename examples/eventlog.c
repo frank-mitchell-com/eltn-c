@@ -81,17 +81,21 @@ int main(int argc, char** argv) {
         size_t strlen = 0;
         const char* evstr;
         const char* errstr;
+        unsigned int errline, errcol;
 
         ELTN_Parser_next(parser);
         event = ELTN_Parser_event(parser);
         evstr = ELTN_Event_name(event);
-        errstr = ELTN_Event_name(ELTN_Parser_error_code(parser));
 
         ELTN_Parser_string(parser, &string, &strlen);
 
         switch (event) {
         case ELTN_ERROR:
-            printf("%s %s <<%*s>>\n", evstr, errstr, strlen, string);
+            errstr = ELTN_Error_name(ELTN_Parser_error_code(parser));
+            errline = ELTN_Parser_error_line(parser);
+            errcol = ELTN_Parser_error_column(parser);
+            printf("%s %s (%u:%u) <<%*s>>\n", evstr, errstr, errline, errcol,
+                   strlen, string);
         case ELTN_STREAM_START:
         case ELTN_STREAM_END:
             printf("&s\n", evstr);
