@@ -117,17 +117,17 @@ contact = {
 }
 
 books = {
-    { 
-        author = "Donald E. Knuth", 
-        title = "Literate Programming", 
-        publisher = "CSLI", 
+    {
+        author = "Donald E. Knuth",
+        title = "Literate Programming",
+        publisher = "CSLI",
         year = 1992
     },
-    { 
-        author = "Jon Bentley", 
-        title = "More Programming Pearls", 
-        year = 1990, 
-        publisher = "Addison-Wesley", 
+    {
+        author = "Jon Bentley",
+        title = "More Programming Pearls",
+        year = 1990,
+        publisher = "Addison-Wesley",
     },
     --[[
     ... many more ...
@@ -673,24 +673,27 @@ The grammar's notation is as follows:
 `? SOME WORDS ?`
 : A description of a rule in plain English.
 
-`"`*x*`"`
+`"`*x*`"` *or* `'`*x*`'`
 : A literal character or sequence of characters.
 
 `"\`*x*`"`
 : An escape sequence denoting a non-printable or confusing character.
   See [**Escape Sequences**](#escape-sequences), above.
 
-`"\""`
+`'"'`
 : A literal `"`.
 
-`"\\"`
-: A literal `\`.
+`"\"`
+: A literal \\.
 
 *x* `,` *y*
 : A sequence of *x* followed by *y*.
 
 *x* `|` *y*
-: Either *x* or *y*. 
+: Either *x* or *y*.
+
+*x* `-` *y*
+: All of *x* except for *y*.
 
 `[` *x* `]`
 : Zero or one of *x*.
@@ -741,45 +744,58 @@ ws              = { whitespace | comment } ;
 
 whitespace      = " " | "\f" | "\n" | "\r" | "\t" | "\v" ;
 
-comment         = ( "--" , ? NOT A NEWLINE ? , newline )
-                    | ( "--" , long_string ) ;
+comment         = short_comment | long_comment
 
-newline         = "\n" | "\r\n" ;
+short_comment   = "--" , [ comment_start , { comment_part } , ] newline ;
+
+long_comment    = "--" , long_string ;
+
+comment_start   = any_characters - ( newline | long_open(any) ) ;
+
+comment_part    = any_characters - newline ;
+
+newline         = "\n" | "\r\n" | "\r" ;
+
+any_characters  = ? ANY SEQUENCE OF VISIBLE CHARACTERS ? ;
 ```
 
 #### Strings
 
 ```ebnf
-string          = quoted_string | long_string ;
+string           = quoted_string | long_string(any) ;
 
-quoted_string   = dquo , { qstr_char_dquo | escape_sequence  } , dquo
-                    | squo , { qstr_char_squo | escape_sequence } , squo ;
+quoted_string    = dquo , { qstr_char_dquo | escape_sequence  } , dquo
+                     | squo , { qstr_char_squo | escape_sequence } , squo ;
 
-dquo            = """" ;    (* should be "\"" but for syntax highlighter *)
+dquo             = '"' ;     (* double quote *)
 
-squo            = "'" ;
+squo             = "'" ;     (* single quote a.k.a. apostrophe *)
 
-qstr_char_dquo  = ? NOT A dquo OR A "\\" OR A NEWLINE ? ;
+bslash           = "\" ;     (* backslash *)
 
-qstr_char_squo  = ? NOT A squo OR A "\\" OR A NEWLINE ? ;
+qstr_char_dquo   = any_characters - ( dquo | bslash | newline ) ;
 
-escape_sequence = "\\" , dquo
-                    | "\\" , squo
-                    | "\\" , newline
-                    | "\\" , "z", { whitespace }
-                    | "\\" , ("a"|"b"|"f"|"n"|"r"|"t"|"v")
-                    | "\\" , "x" , hexdigit , hexdigit
-                    | "\\" , octdigit [ octdigit [ octdigit ] ]
-                    | "\\" , "u{" , hexdigit , { hexdigit } , "}"
-                    | "\\" , "\\" ;
+qstr_char_squo   = any_characters - ( squo | bslash | newline ) ;
 
-long_string      = long_open(N) , long_sequence(N) , long_close(N) ;
+escape_sequence  = bslash , dquo
+                     | bslash , squo
+                     | bslash , newline
+                     | bslash , "z", { whitespace }
+                     | bslash , ("a"|"b"|"f"|"n"|"r"|"t"|"v")
+                     | bslash , "x" , hexdigit , hexdigit
+                     | bslash , octdigit [ octdigit [ octdigit ] ]
+                     | bslash , "u{" , hexdigit , { hexdigit } , "}"
+                     | bslash , bslash ;
 
-long_open(N)     = ( "[" , { "=" } , "[" ) ? FOR EXACTLY N "=" ? ;
+long_string(0)   = "[[" , any_characters - "]]" , "]]" ;
 
-long_sequence(N) = ? NOT A long_close(N) ? ;
+long_string(N)   = long_open(N) , long_sequence(N) , long_close(N) ;
 
-long_close(N)    = ( "]" , { "=" } , "]" ) ? FOR EXACTLY N "=" ? ;
+long_open(N)     = "[" , N * "=" , "[" ;
+
+long_sequence(N) = any_characters - long_close(N) ;
+
+long_close(N)    = "]" , N * "=" , "]" ;
 ```
 
 #### Names and Reserved Words
@@ -793,8 +809,9 @@ reserved_word   = "and" | "break" | "do" | "else" | "elseif" | "end" | "for"
                     | "function" | "goto" | "if" | "in" | "local" | "not"
                     | "or" | "repeat" | "return" | "then" | "until" | "while" ;
 
-name            = (namestart { namepart })
-                    ? AND NOT nil, A boolean, OR A reserved_word ? ;
+name            = name_pattern - ( nil | boolean | reserved_word )
+
+name_pattern    = namestart , { namepart }
 
 namestart       = letter | "_" ;
 
@@ -828,10 +845,10 @@ sign            = [ "-" ] ;
 ### Basic Definitions
 
 ```ebnf
-letter          = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" 
+letter          = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I"
                     | "J" | "K" | "L" | "M" |"N" | "O" | "P" | "Q" | "R"
                     | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z"
-                    | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" 
+                    | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i"
                     | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r"
                     | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" ;
 
@@ -915,7 +932,7 @@ cschar          = letter | number | "-" | "_" | "." | ":" | "/" ;
 
 Unicode uses the Byte Order Mark to determine the byte encoding of a document.
 The order in which the two bytes occur tells a parser whether a document is
-UTF-8, UTF-16, or UTF-32 and in what order the rest of the document's bytes|
+UTF-8, UTF-16, or UTF-32 and in what order the rest of the document's bytes
 will appear.  The following was adapted from an appendix to the
 [XML Specification](https://www.w3.org/TR/2006/REC-xml11-20060816/#sec-guessing).
 
@@ -925,7 +942,7 @@ will appear.  The following was adapted from an appendix to the
 | `FF FE 00 00`     | UTF-32LE  | four bytes, lowest first (little endian)
 | `00 00 FF FE`     | ???       | four bytes, unusual ordering
 | `FE FF 00 00`     | ???       | four bytes, unusual ordering
-| `FE FF 00 00`     | UTF-16BE  | two bytes, higher first (big endian)
+| `FE FF ?? ??`     | UTF-16BE  | two bytes, higher first (big endian)
 | `FF FE ?? ??`     | UTF-16LE  | two bytes, lower first (little endian)
 | `EF BB BF ??`     | UTF-8     | the Byte Order Mark in UTF-8 encoding.
 | `00 00 00 2D`     | UTF-32BE  | no BOM, but a `-` in UTF-32.
@@ -937,7 +954,7 @@ will appear.  The following was adapted from an appendix to the
 
 (Bytes noted as `??` are irrelevant as long as they are not `00`.)
 
-Following that is a standard ELTN / Lua comment that identifies the 
+Following that is a standard ELTN / Lua comment that identifies the
 document as ELTN version 1.0.  What follows (perhaps) is a single directive
 "charset = X", where X is a known encoding name used by `iconv`,
 Java"s character encoding system, and other common systems.
@@ -1001,8 +1018,10 @@ An ELTN path indicates a specific ELTN value through a chain of keys.
 It has the following syntax:
 
 ```ebnf
+
 path    =  ( name | ("[" , keyvalue , "]" ) ) ,
                  { ( "." , name ) | ( "[" , keyvalue  , "]" ) } ;
+
 ```
 
 All paths are rooted in the Definition Table, or in the highest-level Table
