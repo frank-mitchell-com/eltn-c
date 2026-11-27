@@ -701,6 +701,9 @@ The grammar's notation is as follows:
 `{` *x* `}`
 : Zero or more of *x*.
 
+*n* `*` *x*
+: Repeat *x* exactly *n* times.
+
 `(` *x* `)`
 : A group of items that are treated as a unit.
 
@@ -1018,10 +1021,8 @@ An ELTN path indicates a specific ELTN value through a chain of keys.
 It has the following syntax:
 
 ```ebnf
-
 path    =  ( name | ("[" , keyvalue , "]" ) ) ,
                  { ( "." , name ) | ( "[" , keyvalue  , "]" ) } ;
-
 ```
 
 All paths are rooted in the Definition Table, or in the highest-level Table
